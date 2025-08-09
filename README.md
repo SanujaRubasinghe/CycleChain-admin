@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# 🚲 CycleChain Admin Panel – Smart E-Bike Rental System
 
-## Getting Started
+**CycleChain Admin Panel** is the centralized control hub for managing the entire smart e-bike rental ecosystem.  
+Designed with efficiency and security in mind, it empowers administrators and technicians to monitor fleet health, manage users, and ensure smooth operations—all while upholding strict privacy standards.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🌟 Key Features
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- 🛠️ **Fleet & Maintenance Management**  
+  Real-time monitoring of bike status, issue reporting, maintenance scheduling, and task assignment to field technicians.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+- 👥 **User & Ride Oversight**  
+  Manage user accounts, verify rides, handle suspensions, and oversee emergency interventions with privacy-respecting controls.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- 📊 **Analytics & Reporting**  
+  Access usage stats, maintenance logs, and performance metrics to optimize fleet utilization and plan expansions.
 
-## Learn More
+- 🔐 **Privacy-First Access Control**  
+  Role-based permissions restrict access to sensitive data; emergency access protocols ensure data protection.
 
-To learn more about Next.js, take a look at the following resources:
+- 📅 **Booking & Availability Control**  
+  Oversee smart booking schedules, resolve conflicts, and update bike availability dynamically.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- 🔄 **IoT Device Management**  
+  Monitor and control ESP32-based smart units remotely, push firmware updates, and troubleshoot connectivity.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## 🔧 Tech Stack
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Frontend**: Next.js + Tailwind CSS
+- **Backend**: Node.js + Express
+- **Database**: MySQL
+- **Communication**: MQTT/HTTPS for IoT integration
+- **Authentication**: JWT-based secure login with role management
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## 📂 Modules
+
+- 🛠️ **Bike Management** – Status, maintenance, and lifecycle control
+- 👤 **User Management** – Profiles, ride permissions, and emergency overrides
+- 📈 **Dashboard & Reports** – Real-time analytics and historic data views
+- 📡 **IoT Control Center** – Device monitoring and command dispatch
+
+---
+
+## ♻️ Why CycleChain Admin Panel?
+
+The Admin Panel is the backbone of a reliable, privacy-conscious, and user-friendly e-bike rental system.  
+Empower your team to keep the fleet safe, available, and optimized—while protecting user data every step of the way.

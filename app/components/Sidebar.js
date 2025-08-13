@@ -10,14 +10,13 @@ export default function Sidebar() {
     { href: '/fleet-management', icon: <FiHome />, label: 'Dashboard' },
     { href: '/fleet-management/bikes', icon: <FiHome />, label: 'Bikes' },
     { href: '/fleet-management/analytics', icon: <FiPieChart />, label: 'Analytics' },
-    { href: '/fleet-management/users', icon: <FiUsers />, label: 'Users' },
     { href: '/fleet-management/settings', icon: <FiSettings />, label: 'Settings' },
   ];
 
   return (
     <aside className="hidden lg:block fixed inset-y-0 left-0 w-64 bg-white shadow-sm z-10">
       <div className="p-6">
-        <h1 className="text-xl font-bold text-green-600">FleetManager</h1>
+        <h1 className="text-xl font-bold text-green-600">CycleChain</h1>
       </div>
       <nav className="mt-6 px-4">
         <ul className="space-y-2">

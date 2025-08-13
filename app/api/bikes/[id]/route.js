@@ -1,10 +1,12 @@
-import { connectDB } from '@/lib/db';
+import dbConnect from '@/lib/mongodb';
 import Bike from '@/models/Bike';
+import React from 'react';
 
 export async function GET(request, { params }) {
-  await connectDB();
+  await dbConnect()
+  const {id} = await params
   try {
-    const bike = await Bike.findOne({ bikeId: params.id });
+    const bike = await Bike.findOne({ bikeId: id });
     if (!bike) {
       return new Response(JSON.stringify({ error: 'Bike not found' }), { status: 404 });
     }
@@ -15,7 +17,8 @@ export async function GET(request, { params }) {
 }
 
 export async function PUT(request, { params }) {
-  await connectDB();
+  await dbConnect();
+  const {id} = await params
   try {
     const { status, isLocked, lat, lng } = await request.json();
     const update = {};

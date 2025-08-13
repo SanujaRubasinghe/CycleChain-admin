@@ -14,19 +14,9 @@ export const BikeProvider = ({ children }) => {
     const fetchBikes = async () => {
       try {
         // In a real app, you would fetch from your API
-        const mockBikes = [
-          {
-            id: '1',
-            name: 'City Bike 001',
-            status: 'available',
-            battery: 85,
-            lastMaintenance: '2023-05-15',
-            location: { lat: 40.7128, lng: -74.0060 },
-            qrCode: 'bike-001-qr'
-          },
-          // Add more mock bikes...
-        ];
-        setBikes(mockBikes);
+        const res = await fetch('/api/bikes')
+        const data = await res.json()
+        setBikes(data);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching bikes:', error);

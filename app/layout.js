@@ -1,7 +1,7 @@
-import { BikeProvider } from './context/BikeContext';
+import { BikeProvider } from './(fleet-management)/context/BikeContext';
 import { Toaster } from 'react-hot-toast';
 import './globals.css';
-import Sidebar from './components/Sidebar';
+import Sidebar from './(fleet-management)/components/Sidebar';
 
 export const metadata = {
   title: 'Fleet Management Dashboard',

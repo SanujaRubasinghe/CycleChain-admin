@@ -22,12 +22,12 @@ export default function BikeInventory() {
     }
   };
 
-  const toggleLock = async (bikeId, currentLockStatus) => {
+  const toggleLock = async (bikeId, name, currentLockStatus) => {
     try {
       const res = await fetch(`/api/bikes/${bikeId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isLocked: !currentLockStatus })
+        body: JSON.stringify({ isLocked: !currentLockStatus, name: name })
       });
       const updatedBike = await res.json();
       setBikes(bikes.map(b => b.bikeId === bikeId ? updatedBike : b));
@@ -91,7 +91,7 @@ export default function BikeInventory() {
                   View Details
                 </Link>
                 <button
-                  onClick={() => toggleLock(bike.bikeId, bike.isLocked)}
+                  onClick={() => toggleLock(bike.bikeId,bike.name,bike.isLocked)}
                   className={`p-2 rounded-full ${
                     bike.isLocked ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'
                   }`}

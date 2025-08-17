@@ -1,5 +1,6 @@
 import dbConnect from '@/lib/mongodb';
 import Bike from '@/models/Bike';
+import { getMqttClient } from "@/lib/mqttClient";
 import React from 'react';
 
 export async function GET(request, { params }) {
@@ -18,19 +19,30 @@ export async function GET(request, { params }) {
 
 export async function PUT(request, { params }) {
   await dbConnect();
+  const client = getMqttClient()
   const {id} = await params
   try {
-    const { status, isLocked, lat, lng } = await request.json();
+    const { status, isLocked, lat, lng, name } = await request.json();
     const update = {};
     if (status) update.status = status;
     if (isLocked !== undefined) update.isLocked = isLocked;
     if (lat && lng) update.currentLocation = { lat, lng };
 
     const bike = await Bike.findOneAndUpdate(
-      { bikeId: params.id },
+      { bikeId: id },
       update,
       { new: true }
     );
+
+    const topic = `bike/B001/command`
+    const message = isLocked ? "lock" : "unlock"
+
+    client.publish(topic, message, {qos: 1}, (err) => {
+      if (err) {
+          return new Response(JSON.stringify({success: false, error: err.message}), {status: 500})
+      }
+      console.log("MQTT command sent:",topic,message)
+    })
     return new Response(JSON.stringify(bike), { status: 200 });
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });

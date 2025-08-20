@@ -17,14 +17,14 @@ const center = {
 };
 
 export default function BikeMap() {
-  const { isLoaded } = useLoadScript({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
-  });
+  // const { isLoaded } = useLoadScript({
+  //   googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+  // });
   const { bikes, loading } = useBikes();
   const [selectedBike, setSelectedBike] = useState(null);
 
 
-  if (!isLoaded || loading) return <div>Loading...</div>;
+  // if (!isLoaded || loading) return <div>Loading...</div>;
 
   return (
     <GoogleMap

@@ -1,6 +1,7 @@
 {
   "name": "admin",
   "version": "0.1.0",
+  "type": "module",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,6 +10,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@googlemaps/markerclusterer": "^2.6.2",
     "@react-google-maps/api": "^2.20.7",
     "axios": "^1.11.0",
     "chart.js": "^4.5.0",

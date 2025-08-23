@@ -6,6 +6,10 @@ import DashboardHeader from '../components/DashboardHeader';
 import BikeMap from '../components/BikeMap';
 import StatsCard from '../components/StatsCard';
 import AnalyticsPage from './analytics/page';
+import MapWithHeatmaps from '../components/MapWithHeatmaps';
+import GoogleMapsLoader from '../components/GoogleMapsLoader';
+
+
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('map');
@@ -63,7 +67,9 @@ export default function Dashboard() {
               transition={{ duration: 0.3 }}
               className="h-[500px] rounded-lg overflow-hidden"
             >
-              <BikeMap />
+              <GoogleMapsLoader>
+                <MapWithHeatmaps />
+              </GoogleMapsLoader>
             </motion.div>
           )}
 

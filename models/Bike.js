@@ -18,14 +18,16 @@ const BikeSchema = new mongoose.Schema({
   reserved_by: { type: String, default: null },
   lastMaintenance: { type: Date, default: Date.now },
   isLocked: { type: Boolean, default: true },
+  lastMoveAt: { type: Date, index: true },
+  lastSeenAt: { type: Date, index: true },
   createdAt: { type: Date, default: Date.now },
-
   device: {
     chipId: {type: String},
     firmwareVersion: {type: String},
     lastSeen: {type: Date, default: Date.now}
   }
-});
+},
+{timestamps: true});
 BikeSchema.index({currentLocation: "2dsphere"})
 
 export default mongoose.models.Bike || mongoose.model("Bike", BikeSchema)

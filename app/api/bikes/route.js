@@ -21,7 +21,7 @@ export async function POST(request) {
   try {
     const { name, type, lat, lng, isLocked } = await request.json();
     const bikeId = uuidv4();
-    const qrData = JSON.stringify({ bikeId, name });
+    const qrData = `http://192.168.1.2:3000/api/bikes/reserve?bikeId=${bikeId}&name=${name}`;
     const qrCode = await QRCode.toDataURL(qrData);
     const client = getMqttClient()
 

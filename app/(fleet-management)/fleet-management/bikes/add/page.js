@@ -18,7 +18,6 @@ export default function AddBikeForm() {
   const [qrCode, setQrCode] = useState(null);
   const router = useRouter();
 
-  // Fetch available bikes from API
   useEffect(() => {
     const fetchBikes = async () => {
       try {
@@ -33,7 +32,7 @@ export default function AddBikeForm() {
     };
 
     fetchBikes();
-    const interval = setInterval(fetchBikes, 5000); // refresh every 5s
+    const interval = setInterval(fetchBikes, 5000); 
     return () => clearInterval(interval);
   }, []);
 

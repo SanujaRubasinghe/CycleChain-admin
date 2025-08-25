@@ -11,14 +11,35 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body className="bg-gray-100">
+    <html lang="en" className="dark">
+      <body className="bg-gray-900 text-gray-100 transition-colors duration-200">
         <BikeProvider>
           <div className="lg:pl-64">
             <Sidebar />
-            {children}
+            <main className="min-h-screen">
+              {children}
+            </main>
           </div>
-          <Toaster position="top-right" />
+          <Toaster 
+            position="top-right" 
+            toastOptions={{
+              className: 'bg-gray-800 text-gray-100 border border-gray-700',
+              success: {
+                className: 'bg-green-900 text-green-100 border-green-700',
+                iconTheme: {
+                  primary: '#10B981',
+                  secondary: '#ECFDF5',
+                },
+              },
+              error: {
+                className: 'bg-rose-900 text-rose-100 border-rose-700',
+                iconTheme: {
+                  primary: '#F43F5E',
+                  secondary: '#FDF2F2',
+                },
+              },
+            }}
+          />
         </BikeProvider>
       </body>
     </html>

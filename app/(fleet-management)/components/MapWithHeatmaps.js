@@ -103,7 +103,7 @@ export default function MapWithHeatmaps() {
             padding:12px;
           ">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-              <h3 style="margin:0; font-size:16px; font-weight:600;">${bike.name}</h3>
+              <h3 style="margin:0; font-size:16px; font-weight:600;color:#000">${bike.name}</h3>
               <span style="font-size:12px; color:#555;">${bike.type}</span>
             </div>
 

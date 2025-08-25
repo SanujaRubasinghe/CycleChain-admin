@@ -20,7 +20,6 @@ const RideSchema = new Schema(
   { timestamps: true }
 );
 
-// helpful compound indexes
 RideSchema.index({ "start.lat": 1, "start.lng": 1, startTime: 1 });
 RideSchema.index({ "end.lat": 1, "end.lng": 1, endTime: 1 });
 

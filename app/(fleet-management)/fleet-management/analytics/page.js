@@ -30,7 +30,7 @@ export default function AnalyticsPage() {
       {
         label: 'Bike Rentals',
         data: [120, 190, 130, 170, 150, 210, 240],
-        backgroundColor: '#10B981',
+        backgroundColor: '#06B6D4', // Cyan
         borderRadius: 4,
       },
     ],
@@ -42,9 +42,9 @@ export default function AnalyticsPage() {
       {
         data: [32, 8, 2],
         backgroundColor: [
-          '#10B981',
-          '#3B82F6',
-          '#F59E0B',
+          '#10B981', // Green
+          '#3B82F6', // Blue
+          '#F59E0B', // Amber
         ],
         borderWidth: 0,
       },
@@ -58,10 +58,55 @@ export default function AnalyticsPage() {
     { title: 'Revenue', value: '$24,580', icon: <FiTrendingUp />, change: '+18%' },
   ];
 
+  // Chart options with dark theme
+  const barOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: {
+          color: '#D1D5DB', // gray-300
+        },
+      },
+    },
+    scales: {
+      x: {
+        ticks: {
+          color: '#9CA3AF', // gray-400
+        },
+        grid: {
+          color: '#374151', // gray-700
+        },
+      },
+      y: {
+        ticks: {
+          color: '#9CA3AF', // gray-400
+        },
+        grid: {
+          color: '#374151', // gray-700
+        },
+      },
+    },
+  };
+
+  const pieOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'right',
+        labels: {
+          color: '#D1D5DB', // gray-300
+        },
+      },
+    },
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       <div className="px-6 py-8">
-        <h1 className="text-2xl font-bold text-gray-800 mb-8">Analytics Dashboard</h1>
+        <h1 className="text-2xl font-bold text-white mb-8">Analytics Dashboard</h1>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {stats.map((stat, index) => (
@@ -70,20 +115,20 @@ export default function AnalyticsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="bg-white p-6 rounded-xl shadow-sm"
+              className="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">{stat.title}</p>
-                  <h3 className="text-2xl font-bold text-gray-800 mt-1">{stat.value}</h3>
+                  <p className="text-sm font-medium text-gray-400">{stat.title}</p>
+                  <h3 className="text-2xl font-bold text-white mt-1">{stat.value}</h3>
                 </div>
-                <div className="p-3 rounded-full bg-green-50 text-green-600">
+                <div className="p-3 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
                   {stat.icon}
                 </div>
               </div>
-              <div className="mt-4 flex items-center text-sm text-green-600">
-                <span>{stat.change}</span>
-                <span className="ml-1">from last month</span>
+              <div className="mt-4 flex items-center text-sm text-green-400">
+                <span className="font-medium">{stat.change}</span>
+                <span className="ml-2 text-gray-400">from last month</span>
               </div>
             </motion.div>
           ))}
@@ -94,21 +139,13 @@ export default function AnalyticsPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
-            className="bg-white p-6 rounded-xl shadow-sm"
+            className="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg"
           >
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Monthly Usage</h2>
+            <h2 className="text-lg font-semibold text-white mb-4">Monthly Usage</h2>
             <div className="h-80">
               <Bar 
                 data={usageData} 
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      position: 'top',
-                    },
-                  },
-                }}
+                options={barOptions}
               />
             </div>
           </motion.div>
@@ -117,21 +154,13 @@ export default function AnalyticsPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="bg-white p-6 rounded-xl shadow-sm"
+            className="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg"
           >
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Bike Status Distribution</h2>
+            <h2 className="text-lg font-semibold text-white mb-4">Bike Status Distribution</h2>
             <div className="h-80">
               <Pie 
                 data={statusData} 
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      position: 'right',
-                    },
-                  },
-                }}
+                options={pieOptions}
               />
             </div>
           </motion.div>

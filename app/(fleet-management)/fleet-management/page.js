@@ -1,22 +1,34 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiHome, FiMap, FiPieChart, FiPlus } from 'react-icons/fi';
 import { LuBike } from 'react-icons/lu';
 import StatsCard from '../components/StatsCard';
-import AnalyticsPage from './analytics/page';
-import MapWithHeatmaps from '../components/MapWithHeatmaps';
-import GoogleMapsLoader from '../components/GoogleMapsLoader';
+import MapWithHeatmapsWrapper from '../components/MapWithHeatmapsWrapper'
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('map');
+  const [stats, setStats] = useState([])
 
-  const stats = [
-    { title: 'Total Bikes', value: '42', change: '+5%', icon: <LuBike /> },
-    { title: 'Available', value: '32', change: '+12%', icon: <FiHome /> },
-    { title: 'In Use', value: '8', change: '-3%', icon: <FiHome /> },
-    { title: 'Maintenance', value: '2', change: '0%', icon: <FiHome /> },
-  ];
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch("api/bikes/analytics")
+        const data = await res.json()
+
+        setStats([
+          { title: "Total Bikes", value: data.totalBikes, change: "+5%", icon: <LuBike /> },
+          { title: "Available", value: data.available, change: "+12%", icon: <FiHome /> },
+          { title: "In Use", value: data.inUse, change: "-3%", icon: <FiHome /> },
+          { title: "Maintenance", value: data.maintenance, change: "0%", icon: <FiHome /> },
+        ])
+      } catch (error) {
+        console.error("Failed to load analytics")
+      }
+    }
+
+    fetchStats()
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -70,9 +82,7 @@ export default function Dashboard() {
               transition={{ duration: 0.3 }}
               className="h-[500px] rounded-lg overflow-hidden border border-gray-700"
             >
-              <GoogleMapsLoader>
-                <MapWithHeatmaps />
-              </GoogleMapsLoader>
+              <MapWithHeatmapsWrapper/>
             </motion.div>
           )}
 

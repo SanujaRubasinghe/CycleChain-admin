@@ -6,7 +6,7 @@ const BikeSchema = new mongoose.Schema({
   type: { type: String, enum: ['city', 'mountain', 'electric'], required: true },
   status: { 
     type: String, 
-    enum: ['available', 'in_use', 'maintenance', 'locked', "provisioning", "require_collection"], 
+    enum: ['available', 'in_use', 'maintenance', 'locked', "provisioning", "require_collection","offline"], 
     default: 'provisioning' 
   },
   battery: { type: Number, min: 0, max: 100, default: 100 },

@@ -1,6 +1,5 @@
 'use client';
-import React, { useRef } from 'react';
-import { useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FiLock, FiUnlock, FiMapPin, FiBattery, FiCalendar, FiArrowLeft, FiDownload, FiExternalLink, FiTrash2 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
@@ -30,6 +29,7 @@ export default function BikeDetail({ params }) {
   };
 
   const toggleLock = async () => {
+    if (bike.status === 'offline') return;
     try {
       const res = await fetch(`/api/bikes/${id}`, {
         method: 'PUT',
@@ -45,6 +45,7 @@ export default function BikeDetail({ params }) {
   };
 
   const downloadQRCode = () => {
+    if (bike.status === 'offline') return;
     if (qrCodeRef.current) {
       html2canvas(qrCodeRef.current).then(canvas => {
         const link = document.createElement('a');
@@ -57,6 +58,7 @@ export default function BikeDetail({ params }) {
   };
 
   const handleDeleteBike = async () => {
+    if (bike.status === 'offline') return;
     if (!adminPassword) {
       toast.error('Please enter admin password');
       return;
@@ -96,7 +98,7 @@ export default function BikeDetail({ params }) {
 
   if (!bike) return (
     <div className="flex justify-center items-center min-h-screen bg-gray-900">
-      <div className="text-center p-8 bg-gray-800 rounded-xl">
+      <div className="text-center p-8 bg-gray-800 rounded-xl shadow-lg">
         <h2 className="text-xl font-semibold text-white mb-4">Bike not found</h2>
         <button 
           onClick={() => router.back()}
@@ -109,8 +111,26 @@ export default function BikeDetail({ params }) {
   );
 
   return (
-    <div className="min-h-screen bg-gray-900 p-4 lg:p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gray-900 p-4 lg:p-8 relative">
+      {/* Offline Modal */}
+      {bike.status === 'offline' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
+          <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full border border-rose-500/40 shadow-lg text-center animate-fade-in">
+            <h3 className="text-2xl font-bold text-rose-400 mb-4">Bike Offline</h3>
+            <p className="text-gray-300 mb-4">
+              This bike is currently offline. All actions are temporarily disabled until the bike reconnects.
+            </p>
+            <button
+              onClick={fetchBike}
+              className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg transition-colors"
+            >
+              Refresh Status
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className={`max-w-6xl mx-auto ${bike.status === 'offline' ? 'pointer-events-none select-none opacity-75' : ''}`}>
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center mb-4">
@@ -127,6 +147,7 @@ export default function BikeDetail({ params }) {
             <span className={`px-3 py-1 rounded-full text-xs font-medium ${
               bike.status === 'available' ? 'bg-green-500/20 text-green-400' :
               bike.status === 'in_use' ? 'bg-blue-500/20 text-blue-400' :
+              bike.status === 'offline' ? 'bg-rose-500/20 text-rose-400' :
               'bg-amber-500/20 text-amber-400'
             }`}>
               {bike.status.replace('_', ' ')}
@@ -139,7 +160,7 @@ export default function BikeDetail({ params }) {
           {/* Left Column */}
           <div className="space-y-6">
             {/* Bike Info Card */}
-            <div className="bg-gray-800 rounded-xl p-5">
+            <div className="bg-gray-800 rounded-xl p-5 shadow-md transition-opacity duration-300">
               <h3 className="font-semibold text-lg text-white mb-4">Bike Information</h3>
               <div className="space-y-4">
                 <div className="flex items-center">
@@ -182,7 +203,7 @@ export default function BikeDetail({ params }) {
             </div>
 
             {/* Location Card */}
-            <div className="bg-gray-800 rounded-xl p-5">
+            <div className="bg-gray-800 rounded-xl p-5 shadow-md transition-opacity duration-300">
               <h3 className="font-semibold text-lg text-white mb-4">Location</h3>
               <div className="flex items-center">
                 <div className="bg-rose-500/20 p-2 rounded-lg mr-3">
@@ -209,15 +230,16 @@ export default function BikeDetail({ params }) {
           {/* Right Column */}
           <div className="space-y-6">
             {/* Lock Control Card */}
-            <div className="bg-gray-800 rounded-xl p-5">
+            <div className="bg-gray-800 rounded-xl p-5 shadow-md transition-opacity duration-300">
               <h3 className="font-semibold text-lg text-white mb-4">Bike Controls</h3>
               <button
                 onClick={toggleLock}
+                disabled={bike.status === 'offline'}
                 className={`w-full py-3 rounded-lg flex items-center justify-center transition-colors ${
                   bike.isLocked 
                     ? 'bg-emerald-600 hover:bg-emerald-500' 
                     : 'bg-rose-600 hover:bg-rose-500'
-                } text-white font-medium`}
+                } text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 {bike.isLocked ? (
                   <>
@@ -237,13 +259,14 @@ export default function BikeDetail({ params }) {
               </p>
             </div>
 
-            {/* QR Code Card */}
-            <div className="bg-gray-800 rounded-xl p-5">
+            {/* QR Code */}
+            <div className="bg-gray-800 rounded-xl p-5 shadow-md transition-opacity duration-300">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-semibold text-lg text-white">QR Code</h3>
                 <button
                   onClick={downloadQRCode}
-                  className="flex items-center text-cyan-400 hover:text-cyan-300 text-sm transition-colors"
+                  disabled={bike.status === 'offline'}
+                  className="flex items-center text-cyan-400 hover:text-cyan-300 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <FiDownload className="mr-1" /> Download
                 </button>
@@ -267,15 +290,16 @@ export default function BikeDetail({ params }) {
               </p>
             </div>
 
-            {/* Delete Bike Card */}
-            <div className="bg-gray-800 rounded-xl p-5 border border-rose-500/30">
+            {/* Danger Zone */}
+            <div className="bg-gray-800 rounded-xl p-5 border border-rose-500/30 shadow-md transition-opacity duration-300">
               <h3 className="font-semibold text-lg text-white mb-4 text-rose-400">Danger Zone</h3>
               <p className="text-sm text-gray-400 mb-4">
                 Permanently remove this bike from the fleet. This action cannot be undone.
               </p>
               <button
                 onClick={() => setShowDeleteModal(true)}
-                className="w-full py-3 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-medium flex items-center justify-center transition-colors"
+                disabled={bike.status === 'offline'}
+                className="w-full py-3 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-medium flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <FiTrash2 className="mr-2" /> Delete Bike
               </button>
@@ -284,10 +308,10 @@ export default function BikeDetail({ params }) {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full border border-rose-500/30">
+          <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full border border-rose-500/30 shadow-lg">
             <h3 className="text-lg font-semibold text-white mb-2">Confirm Deletion</h3>
             <p className="text-sm text-gray-400 mb-4">
               Are you sure you want to delete <span className="font-medium text-white">{bike.name}</span>? 

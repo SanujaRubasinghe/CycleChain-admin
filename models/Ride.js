@@ -1,3 +1,5 @@
+// Delete this model, it is replaced by RentalSesson schema
+
 import mongoose from "mongoose";
 const { Schema } = mongoose;
 

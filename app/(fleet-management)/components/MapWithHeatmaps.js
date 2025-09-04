@@ -1,12 +1,32 @@
 "use client";
 
-import { useEffect, useRef, useState, useMemo } from "react";
-import { MarkerClusterer } from "@googlemaps/markerclusterer";
-import Link from "next/link";
+import { useState, useMemo, useEffect } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  useMap,
+} from "react-leaflet";
+import MarkerClusterGroup from "react-leaflet-cluster";
+import "leaflet/dist/leaflet.css";
+import "leaflet.heat";
+import L from "leaflet";
 import { useBikes } from "../hooks/useBikes";
-import { LuBike } from "react-icons/lu";
 
-const CENTER = { lat: 6.9271, lng: 79.8612 };
+// Fix default marker icons in Next.js
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
+
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x.src,
+  iconUrl: markerIcon.src,
+  shadowUrl: markerShadow.src,
+});
+
+const CENTER = [6.9271, 79.8612]; // Colombo
 const DEFAULT_ZOOM = 13;
 
 const LAYERS = [
@@ -18,15 +38,9 @@ const LAYERS = [
 ];
 
 export default function MapWithHeatmaps() {
-  const mapRef = useRef(null);
-  const mapObj = useRef(null);
-  const [heatmapLayer, setHeatmapLayer] = useState(null);
-  const [clusterer, setClusterer] = useState(null);
+  const { bikes } = useBikes();
   const [activeLayer, setActiveLayer] = useState("none");
   const [range, setRange] = useState("24h");
-  const { bikes } = useBikes();
-
-  const infoWindowRef = useRef(null);
 
   const { startISO, endISO, tauHours } = useMemo(() => {
     const end = new Date();
@@ -40,166 +54,136 @@ export default function MapWithHeatmaps() {
     };
   }, [range]);
 
-  // Initialize map once
-  useEffect(() => {
-    if (!window.google || !mapRef.current) return;
-    if (mapObj.current) return;
-
-    const map = new google.maps.Map(mapRef.current, {
-      center: CENTER,
-      zoom: DEFAULT_ZOOM,
-      mapTypeControl: false,
-      streetViewControl: false,
-      fullscreenControl: true,
-    });
-    mapObj.current = map;
-
-    // Single InfoWindow for all markers
-    infoWindowRef.current = new google.maps.InfoWindow();
-  }, []);
-
-  // Add bike markers + clusterer
-  useEffect(() => {
-    if (!window.google || !mapObj.current || !bikes?.length) return;
-
-    // Clear previous cluster
-    if (clusterer) {
-      clusterer.clearMarkers();
-      setClusterer(null);
-    }
-
-    const bikeIcon = {
-      path: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z",
-      fillColor: "#EF4444",
-      fillOpacity: 1,
-      strokeColor: "#ffffff",
-      strokeWeight: 1,
-      scale: 1.5,
-      anchor: new google.maps.Point(12, 24), // anchor to bottom of icon
-    };
-
-
-    const markers = bikes.map((bike) => {
-      const marker = new google.maps.Marker({
-        position: bike.currentLocation,
-        icon: bikeIcon,
-        map: mapObj.current,
-      });
-
-      marker.addListener("click", () => {
-        const lockStatus = bike.isLocked 
-          ? `<span style="color:red; font-weight:600;">Locked 🔒</span>` 
-          : `<span style="color:green; font-weight:600;">Unlocked 🔓</span>`;
-
-        const batteryColor = bike.battery > 70 ? '#4CAF50' : bike.battery > 30 ? '#FFC107' : '#F44336';
-
-        const content = `
-          <div style="
-            font-family: Arial, sans-serif; 
-            min-width:220px; 
-            background:white; 
-            border-radius:12px; 
-            box-shadow:0 4px 12px rgba(0,0,0,0.15); 
-            padding:12px;
-          ">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-              <h3 style="margin:0; font-size:16px; font-weight:600;color:#000">${bike.name}</h3>
-              <span style="font-size:12px; color:#555;">${bike.type}</span>
-            </div>
-
-            <div style="margin-bottom:8px; font-size:12px; color:#555;">
-              <div style="margin-bottom:4px;">ID: <span style="font-weight:500;">${bike.bikeId}</span></div>
-              <div style="margin-bottom:4px;">Battery: 
-                <span style="font-weight:500;">${bike.battery}%</span>
-                <div style="background:#eee; border-radius:4px; height:6px; margin-top:2px;">
-                  <div style="width:${bike.battery}%; background:${batteryColor}; height:6px; border-radius:4px;"></div>
-                </div>
-              </div>
-              <div>Lock: ${lockStatus}</div>
-            </div>
-
-            <a href="/fleet-management/bikes/${bike.bikeId}" target="_blank" style="
-              display:block; 
-              text-align:center; 
-              padding:6px 0; 
-              background:#2E7D32; 
-              color:white; 
-              border-radius:6px; 
-              text-decoration:none; 
-              font-weight:600;
-            ">Manage Bike</a>
-          </div>
-        `;
-        
-        infoWindowRef.current.setContent(content);
-        infoWindowRef.current.open(mapObj.current, marker);
-      });
-
-
-      return marker;
-    });
-
-    const cl = new MarkerClusterer({ map: mapObj.current, markers });
-    setClusterer(cl);
-  }, [bikes]);
-
-  // Heatmap
-  useEffect(() => {
-    const map = mapObj.current;
-    if (!map || activeLayer === "none") {
-      if (clusterer) clusterer.setMap(map);
-      if (heatmapLayer) heatmapLayer.setMap(null);
-      return;
-    }
-
-    if (clusterer) clusterer.setMap(null);
-    if (heatmapLayer) heatmapLayer.setMap(null);
-
-    const controller = new AbortController();
-    const params = new URLSearchParams({
-      start: startISO,
-      end: endISO,
-      tauHours: tauHours.toString(),
-    });
-
-    fetch(`/api/heatmap/${activeLayer}?` + params.toString(), { signal: controller.signal })
-      .then((res) => res.json())
-      .then((payload) => {
-        if (!payload?.points?.length) return;
-
-        const data = payload.points.map((p) => ({
-
-          location: new google.maps.LatLng(Number(p.lat), Number(p.lng)),
-          weight: Number(p.weight) || 1,
-        }));
-
-        const hl = new google.maps.visualization.HeatmapLayer({
-          data,
-          radius: 50,
-          opacity: 0.85,
-        });
-
-        hl.setMap(map);
-        setHeatmapLayer(hl);
-      })
-      .catch(() => {});
-
-    return () => controller.abort();
-  }, [activeLayer, startISO, endISO, tauHours, clusterer]);
+  // Custom bike icon
+  const bikeIcon = L.divIcon({
+    html: `<svg xmlns="http://www.w3.org/2000/svg" fill="#EF4444" width="28" height="28" viewBox="0 0 24 24">
+      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5
+      s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+    </svg>`,
+    className: "",
+    iconSize: [28, 28],
+    iconAnchor: [14, 28],
+  });
 
   return (
-    <div style={{ width: "100%", height: "100%" }}>
-      <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+    <div style={{ position: "relative", width: "100%", height: 600 }}>
+      {/* 🗺️ Map */}
+      <MapContainer
+        center={CENTER}
+        zoom={DEFAULT_ZOOM}
+        style={{ width: "100%", height: "100%", borderRadius: 8 }}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+
+        {/* Clustered Markers */}
+        {activeLayer === "none" && (
+          <MarkerClusterGroup>
+            {bikes.map((bike) => {
+              const batteryColor =
+                bike.battery > 70 ? "#4CAF50" : bike.battery > 30 ? "#FFC107" : "#F44336";
+
+              return (
+                <Marker
+                  key={bike.bikeId}
+                  position={[bike.currentLocation.lat, bike.currentLocation.lng]}
+                  icon={bikeIcon}
+                >
+                  <Popup>
+                    <div style={{ minWidth: 220 }}>
+                      <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: "#000" }}>
+                        {bike.name}
+                      </h3>
+                      <div style={{ fontSize: 12, marginBottom: 4 }}>
+                        ID: <strong>{bike.bikeId}</strong>
+                      </div>
+                      <div style={{ marginBottom: 4 }}>
+                        Battery: <strong>{bike.battery}%</strong>
+                        <div style={{ background: "#eee", borderRadius: 4, height: 6 }}>
+                          <div
+                            style={{
+                              width: `${bike.battery}%`,
+                              background: batteryColor,
+                              height: 6,
+                              borderRadius: 4,
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        Lock:{" "}
+                        {bike.isLocked ? (
+                          <span style={{ color: "red", fontWeight: 600 }}>Locked 🔒</span>
+                        ) : (
+                          <span style={{ color: "green", fontWeight: 600 }}>Unlocked 🔓</span>
+                        )}
+                      </div>
+                      <a
+                        href={`/fleet-management/bikes/${bike.bikeId}`}
+                        target="_blank"
+                        style={{
+                          display: "block",
+                          textAlign: "center",
+                          marginTop: 8,
+                          padding: "6px 0",
+                          background: "#2E7D32",
+                          color: "white",
+                          borderRadius: 6,
+                          textDecoration: "none",
+                          fontWeight: 600,
+                        }}
+                      >
+                        Manage Bike
+                      </a>
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            })}
+          </MarkerClusterGroup>
+        )}
+
+        {/* Heatmap */}
+        {activeLayer !== "none" && (
+          <HeatmapLayer
+            activeLayer={activeLayer}
+            startISO={startISO}
+            endISO={endISO}
+            tauHours={tauHours}
+          />
+        )}
+      </MapContainer>
+
+      {/* 🎛️ Overlay Controls */}
+      <div
+        style={{
+          position: "absolute",
+          top: 10,
+          right: 10,
+          background: "white",
+          padding: 8,
+          borderRadius: 8,
+          boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
+          zIndex: 1000,
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 6,
+          maxWidth: "calc(100% - 20px)",
+        }}
+      >
         {LAYERS.map((l) => (
           <button
             key={l.key}
             onClick={() => setActiveLayer(l.key)}
             style={{
-              padding: "8px 12px",
-              borderRadius: 8,
+              padding: "6px 10px",
+              borderRadius: 6,
               border: "1px solid #e5e7eb",
               background: activeLayer === l.key ? "#2E7D32" : "white",
               color: activeLayer === l.key ? "white" : "#111827",
+              fontSize: 13,
               cursor: "pointer",
             }}
           >
@@ -212,11 +196,12 @@ export default function MapWithHeatmaps() {
               key={r}
               onClick={() => setRange(r)}
               style={{
-                padding: "8px 10px",
-                borderRadius: 8,
+                padding: "6px 8px",
+                borderRadius: 6,
                 border: "1px solid #e5e7eb",
                 background: range === r ? "#111827" : "white",
                 color: range === r ? "white" : "#111827",
+                fontSize: 13,
                 cursor: "pointer",
               }}
             >
@@ -225,7 +210,53 @@ export default function MapWithHeatmaps() {
           ))}
         </div>
       </div>
-      <div ref={mapRef} style={{ width: "100%", height: 600, borderRadius: 8 }} />
     </div>
   );
+}
+
+/**
+ * Heatmap Layer Component
+ */
+function HeatmapLayer({ activeLayer, startISO, endISO, tauHours }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!map) return;
+
+    const heatLayer = L.heatLayer([], {
+      radius: 35,
+      blur: 20,
+      maxZoom: 10,
+      max: 1.0,
+      gradient: {
+        0.1: "blue",
+        0.3: "lime",
+        0.6: "yellow",
+        0.9: "red",
+      },
+    }).addTo(map);
+
+    const controller = new AbortController();
+    const params = new URLSearchParams({
+      start: startISO,
+      end: endISO,
+      tauHours: tauHours.toString(),
+    });
+
+    fetch(`/api/heatmap/${activeLayer}?` + params.toString(), { signal: controller.signal })
+      .then((res) => res.json())
+      .then((payload) => {
+        if (!payload?.points?.length) return;
+        const data = payload.points.map((p) => [Number(p.lat), Number(p.lng), Number(p.weight) || 1]);
+        heatLayer.setLatLngs(data);
+      })
+      .catch(() => {});
+
+    return () => {
+      controller.abort();
+      map.removeLayer(heatLayer);
+    };
+  }, [map, activeLayer, startISO, endISO, tauHours]);
+
+  return null;
 }

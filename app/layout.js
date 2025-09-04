@@ -1,8 +1,12 @@
 import { BikeProvider } from './(fleet-management)/context/BikeContext';
 import { Toaster } from 'react-hot-toast';
 import './globals.css';
+import 'leaflet/dist/leaflet.css'
 import Sidebar from './(fleet-management)/components/Sidebar';
-// EmergencyAlert can be added back later
+import EmergencyAlertModalWrapper from './(fleet-management)/components/EmergencyAlertWrapper';
+import { initMqttStatusServer } from '@/lib/initMqtt';
+
+initMqttStatusServer()
 
 export const metadata = {
   title: "Smart E-Bike System",
@@ -13,6 +17,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className="dark">
       <body className="bg-gray-900 text-gray-100 transition-colors duration-200">
+        {/* <EmergencyAlertModalWrapper/> */}
         <BikeProvider>
           <div className="lg:pl-64">
             <Sidebar />

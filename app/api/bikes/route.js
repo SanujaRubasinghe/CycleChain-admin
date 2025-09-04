@@ -10,6 +10,7 @@ export async function GET() {
   await dbConnect();
   try {
     const bikes = await Bike.find({});
+
     return new Response(JSON.stringify(bikes), { status: 200 });
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });

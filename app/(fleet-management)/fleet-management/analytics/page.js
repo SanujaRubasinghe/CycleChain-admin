@@ -1,6 +1,7 @@
-'use client';
-import { FiBarChart2, FiTrendingUp, FiUsers, FiClock } from 'react-icons/fi';
-import { motion } from 'framer-motion';
+"use client";
+import React, { useEffect, useState, useRef } from "react";
+import { FiBarChart2, FiTrendingUp, FiUsers, FiClock } from "react-icons/fi";
+import { motion } from "framer-motion";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -10,8 +11,8 @@ import {
   Tooltip,
   Legend,
   ArcElement,
-} from 'chart.js';
-import { Bar, Pie } from 'react-chartjs-2';
+} from "chart.js";
+import { Bar, Pie } from "react-chartjs-2";
 
 ChartJS.register(
   CategoryScale,
@@ -24,97 +25,174 @@ ChartJS.register(
 );
 
 export default function AnalyticsPage() {
+  const [overview, setOverview] = useState(null);
+  const [overviewLoading, setOverviewLoading] = useState(true);
+  const [overviewError, setOverviewError] = useState(null);
+
+  // Monthly usage
+  const [usage, setUsage] = useState({ labels: [], data: [] });
+  const [usageLoading, setUsageLoading] = useState(true);
+
+  // Status distribution
+  const [status, setStatus] = useState({ labels: [], data: [] });
+  const [statusLoading, setStatusLoading] = useState(true);
+
+  // Active sessions (polled)
+  const [activeSessions, setActiveSessions] = useState([]);
+  const [activeLoading, setActiveLoading] = useState(true);
+
+  // Top users
+  const [topUsers, setTopUsers] = useState([]);
+  const [topUsersLoading, setTopUsersLoading] = useState(true);
+
+  // Maintenance
+  const [maintenance, setMaintenance] = useState([]);
+  const [maintenanceLoading, setMaintenanceLoading] = useState(true);
+
+  const activePollRef = useRef(null);
+
+  async function fetchJson(url, setData, setLoading, setError) {
+    setLoading(true);
+    try {
+      const res = await fetch(url, { cache: "no-cache" });
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      const json = await res.json();
+      setData(json);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchJson("/api/analytics/overview", setOverview, setOverviewLoading, setOverviewError);
+    fetchJson("/api/analytics/monthly-usage?months=7", setUsage, setUsageLoading, () => {});
+    fetchJson("/api/analytics/status-distribution", setStatus, setStatusLoading, () => {});
+    fetchJson("/api/analytics/top-users?days=30", setTopUsers, setTopUsersLoading, () => {});
+    fetchJson("/api/maintenance/list", setMaintenance, setMaintenanceLoading, () => {});
+
+    const poll = async () => {
+      setActiveLoading(true);
+      try {
+        const res = await fetch("/api/analytics/active-sessions", { cache: "no-cache" });
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+        const j = await res.json();
+        setActiveSessions(j.sessions || []);
+      } catch (e) {
+        console.error("Active sessions fetch failed:", e);
+      } finally {
+        setActiveLoading(false);
+      }
+    };
+
+    // run immediately then set interval
+    poll();
+    activePollRef.current = setInterval(poll, 10_000);
+
+    return () => {
+      if (activePollRef.current) clearInterval(activePollRef.current);
+    };
+  }, []);
+
+  const downloadPDF = async () => {
+    try {
+      const res = await fetch("/api/reports/monthly");
+      if (!res.ok) throw new Error("Failed to generate report");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `monthly_report.pdf`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to download report");
+    }
+  };
+
+  // Build chart datasets
   const usageData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+    labels: usage.labels || [],
     datasets: [
       {
-        label: 'Bike Rentals',
-        data: [120, 190, 130, 170, 150, 210, 240],
-        backgroundColor: '#06B6D4', // Cyan
-        borderRadius: 4,
+        label: "Bike Rentals",
+        data: usage.data || [],
+        backgroundColor: "#06B6D4",
+        borderRadius: 6,
       },
     ],
   };
 
   const statusData = {
-    labels: ['Available', 'In Use', 'Maintenance'],
+    labels: status.labels || ["Available", "In Use", "Maintenance", "Offline"],
     datasets: [
       {
-        data: [32, 8, 2],
-        backgroundColor: [
-          '#10B981', // Green
-          '#3B82F6', // Blue
-          '#F59E0B', // Amber
-        ],
+        data: status.data || [],
+        backgroundColor: ["#10B981", "#3B82F6", "#F59E0B", "#cc0000"],
         borderWidth: 0,
       },
     ],
   };
 
-  const stats = [
-    { title: 'Total Rentals', value: '1,240', icon: <FiBarChart2 />, change: '+12%' },
-    { title: 'Active Users', value: '856', icon: <FiUsers />, change: '+8%' },
-    { title: 'Avg. Ride Time', value: '32 min', icon: <FiClock />, change: '+5%' },
-    { title: 'Revenue', value: '$24,580', icon: <FiTrendingUp />, change: '+18%' },
-  ];
-
-  // Chart options with dark theme
   const barOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'top',
-        labels: {
-          color: '#D1D5DB', // gray-300
-        },
+        position: "top",
+        labels: { color: "#D1D5DB" },
       },
     },
     scales: {
-      x: {
-        ticks: {
-          color: '#9CA3AF', // gray-400
-        },
-        grid: {
-          color: '#374151', // gray-700
-        },
-      },
-      y: {
-        ticks: {
-          color: '#9CA3AF', // gray-400
-        },
-        grid: {
-          color: '#374151', // gray-700
-        },
-      },
+      x: { ticks: { color: "#9CA3AF" }, grid: { color: "#374151" } },
+      y: { ticks: { color: "#9CA3AF" }, grid: { color: "#374151" } },
     },
   };
 
   const pieOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'right',
-        labels: {
-          color: '#D1D5DB', // gray-300
-        },
-      },
-    },
+    plugins: { legend: { position: "right", labels: { color: "#D1D5DB" } } },
   };
+
+  const stats = [
+    { title: "Total Rentals", value: overview ? overview.totalRentals : "—", icon: <FiBarChart2 />, change: "+12%" },
+    { title: "Active Users", value: overview ? overview.activeUsers : "—", icon: <FiUsers />, change: "+8%" },
+    { title: "Avg. Ride Time", value: overview ? `${overview.avgRideTime} min` : "—", icon: <FiClock />, change: "+5%" },
+    { title: "Revenue", value: overview ? `LKR ${Number(overview.revenue || 0).toLocaleString()}` : "—", icon: <FiTrendingUp />, change: "+18%" },
+  ];
+
+  if (overviewLoading) {
+    return <div className="text-gray-400">Loading analytics...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-900">
       <div className="px-6 py-8">
-        <h1 className="text-2xl font-bold text-white mb-8">Analytics Dashboard</h1>
-        
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-white">Analytics Dashboard</h1>
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-gray-400">Updated: {new Date().toLocaleString()}</div>
+            <button
+              onClick={downloadPDF}
+              className="bg-cyan-500 text-white px-3 py-1.5 rounded hover:bg-cyan-600 text-sm"
+            >
+              Download Monthly Report
+            </button>
+          </div>
+        </div>
+
+        {/* Stats cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {stats.map((stat, index) => (
             <motion.div
               key={index}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+              transition={{ delay: index * 0.08 }}
               className="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg"
             >
               <div className="flex items-center justify-between">
@@ -122,49 +200,107 @@ export default function AnalyticsPage() {
                   <p className="text-sm font-medium text-gray-400">{stat.title}</p>
                   <h3 className="text-2xl font-bold text-white mt-1">{stat.value}</h3>
                 </div>
-                <div className="p-3 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
-                  {stat.icon}
-                </div>
+                <div className="p-3 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">{stat.icon}</div>
               </div>
-              <div className="mt-4 flex items-center text-sm text-green-400">
+              {/* <div className="mt-4 flex items-center text-sm text-green-400">
                 <span className="font-medium">{stat.change}</span>
                 <span className="ml-2 text-gray-400">from last month</span>
-              </div>
+              </div> */}
             </motion.div>
           ))}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            className="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg"
-          >
-            <h2 className="text-lg font-semibold text-white mb-4">Monthly Usage</h2>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white">Monthly Usage</h2>
+              {usageLoading ? <span className="text-sm text-gray-400">Loading...</span> : null}
+            </div>
             <div className="h-80">
-              <Bar 
-                data={usageData} 
-                options={barOptions}
-              />
+              <Bar data={usageData} options={barOptions} />
             </div>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg"
-          >
-            <h2 className="text-lg font-semibold text-white mb-4">Bike Status Distribution</h2>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.2 }} className="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white">Bike Status Distribution</h2>
+              {statusLoading ? <span className="text-sm text-gray-400">Loading...</span> : null}
+            </div>
             <div className="h-80">
-              <Pie 
-                data={statusData} 
-                options={pieOptions}
-              />
+              <Pie data={statusData} options={pieOptions} />
             </div>
           </motion.div>
         </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white">Active Rentals</h2>
+              <div className="text-sm text-gray-400">{activeLoading ? "Refreshing…" : `${activeSessions.length} active`}</div>
+            </div>
+
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {activeLoading && activeSessions.length === 0 ? (
+                <div className="text-sm text-gray-400">Loading active sessions…</div>
+              ) : activeSessions.length === 0 ? (
+                <div className="text-sm text-gray-400">No active sessions right now.</div>
+              ) : (
+                activeSessions.map((s) => (
+                  <div key={s.session_id} className="flex items-center justify-between bg-gray-900/20 p-3 rounded-md">
+                    <div>
+                      <div className="text-white font-medium">{s.session_id}</div>
+                      <div className="text-sm text-gray-400">User: {s.user_id} • Bike: {s.bike_id}</div>
+                    </div>
+                    <div className="text-sm text-gray-300">{s.activeMinutes != null ? `${s.activeMinutes}m` : "—"}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg">
+            <h3 className="text-lg font-semibold text-white mb-3">Top Riders (30d)</h3>
+            <div className="space-y-3">
+              {topUsersLoading ? (
+                <div className="text-sm text-gray-400">Loading top users…</div>
+              ) : topUsers.topUsers.length === 0 ? (
+                <div className="text-sm text-gray-400">No data</div>
+              ) : (
+                topUsers.topUsers.map((t) => (
+                  <div key={t.user_id} className="flex items-center justify-between bg-gray-900/20 p-3 rounded-md">
+                    <div>
+                      <div className="text-white">{(t.user && t.user.name) || t.user_id}</div>
+                      <div className="text-sm text-gray-400">{t.user?.email || ""}</div>
+                    </div>
+                    <div className="text-sm text-gray-300">{t.count} rides</div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <hr className="my-4 border-gray-700" />
+
+            <h3 className="text-lg font-semibold text-white mb-3">Recent Maintenance</h3>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {maintenanceLoading ? (
+                <div className="text-sm text-gray-400">Loading maintenance…</div>
+              ) : maintenance.records.length === 0 ? (
+                <div className="text-sm text-gray-400">No maintenance records</div>
+              ) : (
+                maintenance.records.map((m, i) => (
+                  <div key={i} className="text-sm text-gray-300 bg-gray-900/20 p-2 rounded-md">
+                    <div className="font-medium">Bike: {m.bike_id}</div>
+                    <div className="text-gray-400">{m.issue || m.notes || "Maintenance"}</div>
+                    <div className="text-xs text-gray-500">{new Date(m.reported_at).toLocaleString()}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* small footer / debug */}
+        <div className="mt-8 text-xs text-gray-500">APIs: /api/analytics/* • Data updates polled every 10s for active sessions</div>
       </div>
     </div>
   );

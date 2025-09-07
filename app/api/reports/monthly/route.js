@@ -11,11 +11,13 @@ import fs from "fs";
 const MONGO_URI = process.env.MONGODB_URI;
 
 async function connectDB() {
+  if (!MONGO_URI) throw new Error("MONGODB_URI is not set");
   if (mongoose.connection.readyState === 0) {
     await mongoose.connect(MONGO_URI);
   }
 }
 
+// Simple, focused monthly PDF report route
 export async function GET() {
   await connectDB();
 
@@ -23,202 +25,234 @@ export async function GET() {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
-  const sessions = await RentalSession.find({ start_time: { $gte: startOfMonth, $lte: endOfMonth } }).lean();
-  const payments = await Payment.find({ createdAt: { $gte: startOfMonth, $lte: endOfMonth } }).lean();
-  const maintenance = await MaintenanceRecord.find({ reported_at: { $gte: startOfMonth, $lte: endOfMonth } }).lean();
-  const users = await User.find({ createdAt: { $lte: endOfMonth } }).lean();
+  // load all data in parallel
+  const [sessions, payments, maintenance, users] = await Promise.all([
+    RentalSession.find({ start_time: { $gte: startOfMonth, $lte: endOfMonth } }).lean(),
+    Payment.find({ createdAt: { $gte: startOfMonth, $lte: endOfMonth } }).lean(),
+    MaintenanceRecord.find({ reported_at: { $gte: startOfMonth, $lte: endOfMonth } }).lean(),
+    // For a monthly stat we usually report *new* users during the month
+    User.find({ createdAt: { $gte: startOfMonth, $lte: endOfMonth } }).lean(),
+  ]);
 
-  const totalRevenue = payments.filter(p => p.status === "completed").reduce((sum, p) => sum + p.amount, 0);
+  const totalRevenue = payments
+    .filter((p) => p.status === "completed")
+    .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
-  const doc = new PDFDocument({ margin: 50, size: "A4", bufferPages: true, font: "./public/fonts/Roboto-Regular.ttf" });
+  // create PDF with buffered pages so we can add page numbers at the end
+  const doc = new PDFDocument({ size: "A4", margin: 50, bufferPages: true, font: "./public/fonts/Roboto-Regular.ttf" });
 
-  let buffers = [];
-  doc.on("data", buffers.push.bind(buffers));
+  // Helper to resolve public assets
+  const publicPath = (p) => path.join(process.cwd(), "public", p);
 
-  // Color Scheme
-  const primaryColor = "#2B6CB0"; // blue
-  const secondaryColor = "#4299E1"; // lighter blue
-  const lightGray = "#F7FAFC";
-  const darkColor = "#2D3748";
-  const mediumGray = "#718096";
+  // Register fonts if available, otherwise PDFKit falls back to Helvetica
+  const fonts = {
+    regular: publicPath("fonts/Roboto-Regular.ttf"),
+    medium: publicPath("fonts/Roboto-Medium.ttf"),
+    bold: publicPath("fonts/Roboto-Bold.ttf"),
+  };
+  if (fs.existsSync(fonts.regular)) doc.registerFont("Roboto-Regular", fonts.regular);
+  if (fs.existsSync(fonts.medium)) doc.registerFont("Roboto-Medium", fonts.medium);
+  if (fs.existsSync(fonts.bold)) doc.registerFont("Roboto-Bold", fonts.bold);
 
-  // Fonts paths
-  const robotoRegular = "./public/fonts/Roboto-Regular.ttf";
-  const robotoBold = "./public/fonts/Roboto-Bold.ttf";
-  const robotoMedium = "./public/fonts/Roboto-Medium.ttf";
+  // Stream buffers
+  const buffers = [];
+  const pdfBuffer = await new Promise((resolve, reject) => {
+    doc.on("data", (chunk) => buffers.push(chunk));
+    doc.on("end", () => resolve(Buffer.concat(buffers)));
+    doc.on("error", reject);
 
-  // ----------------------- FRONT PAGE -----------------------
-  function addFrontPage() {
-    const logoPath = path.resolve("./public/logo.png");
-    doc.font(robotoBold).fillColor(primaryColor).fontSize(36);
+    // ---------------- COVER PAGE ----------------
+    // Only the cover contains logo and title
+    const logoPath = publicPath("logo.png");
     if (fs.existsSync(logoPath)) {
-      doc.image(logoPath, doc.page.width / 2 - 50, 130, { width: 100 });
+      // center the logo
+      const logoWidth = 120;
+      doc.image(logoPath, doc.page.width / 2 - logoWidth / 2, 120, { width: logoWidth });
     }
-    doc.text("CycleChain", { align: "center", lineGap: 12 });
-    doc.font(robotoMedium).fillColor(darkColor).fontSize(18);
-    doc.text("Monthly Performance Report", { align: "center", lineGap: 6 });
-    doc.font(robotoRegular).fillColor(mediumGray).fontSize(14);
-    doc.text(`Report Period: ${startOfMonth.toLocaleDateString()} - ${endOfMonth.toLocaleDateString()}`, { align: "center" });
+
+    // Title and subtitle
+    doc
+      .font(fs.existsSync(fonts.bold) ? "Roboto-Bold" : "Helvetica-Bold")
+      .fontSize(36)
+      .fillColor("#2B6CB0")
+      .text("CycleChain", { align: "center", lineGap: 6 });
+
+    doc
+      .font(fs.existsSync(fonts.medium) ? "Roboto-Medium" : "Helvetica")
+      .fontSize(18)
+      .fillColor("#2D3748")
+      .text("Monthly Performance Report", { align: "center" });
+
+    doc
+      .font(fs.existsSync(fonts.regular) ? "Roboto-Regular" : "Helvetica")
+      .fontSize(12)
+      .fillColor("#718096")
+      .text(`Report Period: ${startOfMonth.toLocaleDateString()} - ${endOfMonth.toLocaleDateString()}`, {
+        align: "center",
+      });
+
+    // move to next page (summary)
     doc.addPage();
-  }
 
-  // ----------------------- HEADER & FOOTER -----------------------
-  function addHeader() {
-    const logoPath = path.resolve("./public/logo.png");
-    doc.font(robotoBold).fillColor(primaryColor).fontSize(16);
-    if (fs.existsSync(logoPath)) {
-      doc.image(logoPath, 50, 40, { width: 40 });
-    }
-    doc.text("CycleChain", 100, 45);
-    doc.font(robotoMedium).fillColor(darkColor).fontSize(12);
-    doc.text("Monthly Performance Report", 100, 65);
-    doc.strokeColor(lightGray).lineWidth(1).moveTo(50, 85).lineTo(doc.page.width - 50, 85).stroke();
-  }
+    // ---------------- SUMMARY PAGE ----------------
+    doc
+      .font(fs.existsSync(fonts.bold) ? "Roboto-Bold" : "Helvetica-Bold")
+      .fontSize(18)
+      .fillColor("#2D3748")
+      .text("Executive Summary", { underline: false });
 
-  function addFooter() {
-    const page = doc.page;
-    const bottom = page.height - 40;
-    doc.font(robotoRegular).fillColor(mediumGray).fontSize(10);
-    doc.text(`Page ${page.number}`, 0, bottom, { align: "center" });
-    doc.text(`Generated on: ${now.toLocaleDateString()}`, doc.options.margin, bottom, { align: "left" });
-  }
-
-  // ----------------------- SUMMARY BOXES -----------------------
-  function addSummary() {
-    addHeader();
-    doc.moveDown(3);
-    doc.font(robotoBold).fillColor(primaryColor).fontSize(18).text("Executive Summary", { underline: true });
-
-    const startX = 50;
-    const boxWidth = 130;
-    const boxHeight = 80;
-    const spacing = 25;
-    const y = doc.y + 20;
+    doc.moveDown(1);
 
     const summaryData = [
-      { label: "Total Users", value: users.length },
+      { label: "New Users", value: users.length },
       { label: "Rental Sessions", value: sessions.length },
       { label: "Total Revenue", value: `$${totalRevenue.toFixed(2)}` },
       { label: "Maintenance Issues", value: maintenance.length },
     ];
 
-    summaryData.forEach((item, i) => {
-      const x = startX + i * (boxWidth + spacing);
-      doc.roundedRect(x, y, boxWidth, boxHeight, 8).fillAndStroke(lightGray, secondaryColor);
-      doc.fillColor(darkColor).font(robotoMedium).fontSize(13).text(item.label, x, y + 15, { width: boxWidth, align: "center" });
-      doc.fillColor(primaryColor).font(robotoBold).fontSize(22).text(item.value.toString(), x, y + 40, { width: boxWidth, align: "center" });
+    // Simple stacked summary (easy to read)
+    summaryData.forEach((item) => {
+      doc
+        .font(fs.existsSync(fonts.medium) ? "Roboto-Medium" : "Helvetica")
+        .fontSize(12)
+        .fillColor("#4A5568")
+        .text(`${item.label}: `, { continued: true });
+
+      doc
+        .font(fs.existsSync(fonts.bold) ? "Roboto-Bold" : "Helvetica-Bold")
+        .fontSize(14)
+        .fillColor("#2B6CB0")
+        .text(String(item.value));
+
+      doc.moveDown(0.5);
     });
 
-    doc.moveDown(8);
-    addFooter();
+    // move to the next page which will contain simple tables
     doc.addPage();
-  }
 
-  // ----------------------- TABLE HELPER -----------------------
-  function drawTable(headers, rows) {
-    const columnCount = headers.length;
-    const pageWidth = doc.page.width - doc.options.margin * 2;
-    const colWidth = pageWidth / columnCount;
-    let y = doc.y;
+    // ---------------- SIMPLE TABLES ----------------
+    // Helper to draw a plain table that paginates
+    function drawSimpleTable(title, headers, rows) {
+      doc
+        .font(fs.existsSync(fonts.bold) ? "Roboto-Bold" : "Helvetica-Bold")
+        .fontSize( fourteenOr12(16) )
+        .fillColor("#2D3748")
+        .text(title);
 
-    // Header
-    doc.font(robotoBold).fontSize(11);
-    doc.fillColor("white");
-    doc.rect(doc.options.margin, y, pageWidth, 25).fill(primaryColor);
-    headers.forEach((h, i) => {
-      doc.text(h, doc.options.margin + i * colWidth + 5, y + 7, { width: colWidth - 10, align: "center" });
-    });
-    y += 25;
+      doc.moveDown(0.5);
 
-    // Rows
-    doc.font(robotoRegular).fontSize(10);
-    rows.forEach((row, idx) => {
-      const fillColor = idx % 2 === 0 ? lightGray : "#FFFFFF";
-      doc.rect(doc.options.margin, y, pageWidth, 25).fill(fillColor);
-      doc.fillColor(darkColor);
-      row.forEach((cell, i) => {
-        // Right align numeric data columns (Cost, Amount)
-        const isNumericColumn = typeof cell === "string" && cell.startsWith("$");
-        doc.text(cell.toString(), doc.options.margin + i * colWidth + 5, y + 7, {
-          width: colWidth - 10,
-          align: isNumericColumn ? "right" : "center",
+      const margin = doc.options.margin;
+      const usableWidth = doc.page.width - margin * 2;
+      const rowHeight = 20;
+      const headerHeight = 22;
+      const colCount = Math.max(headers.length, 1);
+      const colWidth = usableWidth / colCount;
+
+      // draw header row
+      let y = doc.y;
+      function drawHeader() {
+        doc.rect(margin, y, usableWidth, headerHeight).fill("#2B6CB0");
+        doc.fillColor("white");
+        doc.font(fs.existsSync(fonts.bold) ? "Roboto-Bold" : "Helvetica-Bold").fontSize(10);
+        headers.forEach((h, i) => {
+          doc.text(h, margin + i * colWidth + 5, y + 6, { width: colWidth - 10, align: "center" });
         });
-      });
-      y += 25;
-      if (y > 730) {
-        doc.addPage();
-        addHeader();
-        y = 110;
+        y += headerHeight;
       }
-    });
 
-    doc.y = y + 10;
-  }
+      drawHeader();
 
-  // ----------------------- DETAILED TABLES -----------------------
-  function addDetailedTables() {
-    // Rental Sessions
-    addHeader();
-    doc.moveDown(2);
-    doc.font(robotoBold).fillColor(primaryColor).fontSize(16).text("Rental Sessions Detail", { underline: true });
-    const sessionRows = sessions.map(s => [
-      s.session_id.substring(0, 8),
-      s.user_id.substring(0, 8),
-      s.bike_id.substring(0, 8),
-      s.status,
-      `$${s.cost.toFixed(2)}`
+      doc.font(fs.existsSync(fonts.regular) ? "Roboto-Regular" : "Helvetica").fontSize(10).fillColor("#2D3748");
+
+      rows.forEach((row, rIdx) => {
+        // paginate
+        if (y + rowHeight > doc.page.height - margin) {
+          doc.addPage();
+          y = doc.y;
+          drawHeader();
+        }
+
+        const fill = rIdx % 2 === 0 ? "#FFFFFF" : "#F7FAFC";
+        doc.rect(margin, y, usableWidth, rowHeight).fill(fill);
+
+        row.forEach((cell, cIdx) => {
+          const text = cell == null ? "" : String(cell);
+          const isNumeric = typeof cell === "number" || (typeof text === "string" && text.startsWith("$"));
+
+          doc.fillColor("#2D3748");
+          doc.text(text, margin + cIdx * colWidth + 5, y + 4, {
+            width: colWidth - 10,
+            align: isNumeric ? "right" : "center",
+          });
+        });
+
+        y += rowHeight;
+      });
+
+      // set doc.y so subsequent content starts after table
+      doc.y = y + 10;
+      doc.moveDown(0.5);
+    }
+
+    // Prepare rows for each dataset (keep it concise)
+    const sessionRows = sessions.map((s) => [
+      (s.session_id || s._id)?.toString?.().slice(0, 8) || "-",
+      (s.user_id || s.user)?.toString?.().slice(0, 8) || "-",
+      (s.bike_id || s.bike)?.toString?.().slice(0, 8) || "-",
+      s.status || "-",
+      `$${Number(s.cost || 0).toFixed(2)}`,
     ]);
-    drawTable(["Session", "User", "Bike", "Status", "Cost"], sessionRows);
-    addFooter();
 
-    // Payments
-    doc.addPage();
-    addHeader();
-    doc.moveDown(2);
-    doc.font(robotoBold).fillColor(primaryColor).fontSize(16).text("Payments Detail", { underline: true });
-    const paymentRows = payments.map(p => [
-      p._id.toString().substring(0, 8),
-      p.user_id.substring(0, 8),
-      `$${p.amount.toFixed(2)}`,
-      p.status,
-      new Date(p.createdAt).toLocaleDateString()
+    const paymentRows = payments.map((p) => [
+      (p._id || "")?.toString?.().slice(0, 8) || "-",
+      (p.user_id || p.user)?.toString?.().slice(0, 8) || "-",
+      `$${Number(p.amount || 0).toFixed(2)}`,
+      p.status || "-",
+      new Date(p.createdAt).toLocaleDateString(),
     ]);
-    drawTable(["Payment", "User", "Amount", "Status", "Date"], paymentRows);
-    addFooter();
 
-    // Maintenance
-    doc.addPage();
-    addHeader();
-    doc.moveDown(2);
-    doc.font(robotoBold).fillColor(primaryColor).fontSize(16).text("Maintenance Records", { underline: true });
-    const maintenanceRows = maintenance.map(m => [
-      m.bike_id.substring(0, 8),
-      m.issue.length > 30 ? m.issue.substring(0, 27) + "..." : m.issue,
-      m.status,
-      `$${m.cost?.toFixed(2) || "0.00"}`
+    const maintenanceRows = maintenance.map((m) => [
+      (m.bike_id || "")?.toString?.().slice(0, 8) || "-",
+      m.issue ? (m.issue.length > 60 ? m.issue.substring(0, 57) + "..." : m.issue) : "-",
+      m.status || "-",
+      `$${Number(m.cost || 0).toFixed(2)}`,
     ]);
-    drawTable(["Bike", "Issue", "Status", "Cost"], maintenanceRows);
-    addFooter();
-  }
 
-  // ----------------------- GENERATE PDF -----------------------
-  addFrontPage();
-  addSummary();
-  addDetailedTables();
+    const userRows = users.map((u) => [
+      (u._id || "")?.toString?.().slice(0, 8) || "-",
+      u.name || u.email || "-",
+      new Date(u.createdAt).toLocaleDateString(),
+    ]);
 
-  doc.end();
+    // Draw the tables; each one will paginate if necessary.
+    drawSimpleTable("Rental Sessions", ["Session", "User", "Bike", "Status", "Cost"], sessionRows);
+    drawSimpleTable("Payments", ["Payment", "User", "Amount", "Status", "Date"], paymentRows);
+    drawSimpleTable("Maintenance Records", ["Bike", "Issue", "Status", "Cost"], maintenanceRows);
+    drawSimpleTable("New Users", ["User", "Name/Email", "Joined"], userRows);
 
-  const pdfData = await new Promise((resolve, reject) => {
-    const chunks = [];
-    doc.on("data", chunk => chunks.push(chunk));
-    doc.on("end", () => resolve(Buffer.concat(chunks)));
-    doc.on("error", reject);
+    // ---------------- ADD PAGE NUMBERS ----------------
+    const range = doc.bufferedPageRange(); // { start: 0, count: n }
+    for (let i = 0; i < range.count; i++) {
+      doc.switchToPage(i);
+      doc.fontSize(9).fillColor("#718096").text(`Page ${i + 1} of ${range.count}`, 0, doc.page.height - 40, {
+        align: "center",
+      });
+    }
+
+    // finalize PDF
+    doc.end();
   });
 
-  return new NextResponse(pdfData, {
+  // return PDF as an attachment
+  return new NextResponse(pdfBuffer, {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="CycleChain_Report_${now.getMonth() + 1}_${now.getFullYear()}.pdf"`,
     },
   });
+}
+
+// tiny helper used inside drawSimpleTable to switch value for fontSize if desired
+function fourteenOr12(v) {
+  return v;
 }

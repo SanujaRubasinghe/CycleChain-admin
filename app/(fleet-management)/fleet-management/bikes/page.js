@@ -5,6 +5,7 @@ import { FiLock, FiUnlock, FiRefreshCw, FiPlus, FiAlertCircle, FiSearch, FiChevr
 import { LuBike } from 'react-icons/lu';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import BikeInventoryLoader from '../../components/BikeInventoryLoader';
 
 export default function BikeInventory() {
   const [bikes, setBikes] = useState([]);
@@ -62,7 +63,7 @@ export default function BikeInventory() {
       bike.status.toLowerCase().includes(term.toLowerCase())
     );
     setFilteredBikes(filtered);
-    setCurrentPage(1); // Reset to first page when searching
+    setCurrentPage(1); 
   };
 
   const handleSearch = (e) => {
@@ -71,7 +72,6 @@ export default function BikeInventory() {
     filterBikes(term);
   };
 
-  // Pagination logic
   const indexOfLastBike = currentPage * bikesPerPage;
   const indexOfFirstBike = indexOfLastBike - bikesPerPage;
   const currentBikes = filteredBikes.slice(indexOfFirstBike, indexOfLastBike);
@@ -84,9 +84,10 @@ export default function BikeInventory() {
   }, []);
 
   if (loading) return (
-    <div className="flex justify-center items-center min-h-64">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400"></div>
-    </div>
+    // <div className="flex justify-center items-center min-h-64">
+    //   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400"></div>
+    // </div>
+    <BikeInventoryLoader/>
   );
 
   if (error) return (

@@ -9,10 +9,19 @@ export default function BikeDetail({ params }) {
   const [bike, setBike] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showMaintenanceModal, setShowMaintenanceModal] = useState(false)
   const [adminPassword, setAdminPassword] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
   const qrCodeRef = useRef(null);
+
+  const [maintenanceForm, setMaintenanceForm] = useState({
+    issue: "",
+    notes: "",
+    cost: "",
+  })
+
+  const [isSavingMaintenance, setIsSavingMaintenance] = useState(false)
 
   const { id } = React.use(params);
 
@@ -88,6 +97,47 @@ export default function BikeDetail({ params }) {
     }
   };
 
+  const handleMaintenanceChange = (e) => {
+    const {name, value} = e.target
+    setMaintenanceForm((prev) => ({...prev, [name]: value}))
+  }
+
+  const handleSaveMaintenance = async () => {
+    if (!maintenanceForm.issue) {
+      toast.error("Issue description is required")
+      return;
+    }
+    setIsSavingMaintenance(true)
+    try {
+      const res = await fetch(`/api/maintenance/post`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          bike_id: bike.bikeId,
+          ...maintenanceForm,
+          cost: maintenanceForm.cost ? Number(maintenanceForm.cost) : 0,
+        })
+      })
+
+      if (res.ok) {
+        toast.success("Maintenance record added")
+        setShowMaintenanceModal(false)
+        setMaintenanceForm({
+          issue: "",
+          notes: "",
+          cost: "",
+        })
+      } else {
+        const error = (await res).json()
+        toast.error(error.message || "Failed to save maintenance")
+      }
+    } catch (err) {
+      toast.error("Failed to save maintenance")
+    } finally {
+      setIsSavingMaintenance(false)
+    }
+  }
+
   useEffect(() => { fetchBike(); }, [id]);
 
   if (loading) return (
@@ -126,6 +176,86 @@ export default function BikeDetail({ params }) {
             >
               Refresh Status
             </button>
+          </div>
+        </div>
+      )}
+
+      {showMaintenanceModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
+          <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full border border-amber-500/30 shadow-lg">
+            <h3 className="text-lg font-semibold text-white mb-4">Mark for Maintenance</h3>
+
+            {/* Issue */}
+            <div className="mb-3">
+              <label className="block text-sm text-gray-400 mb-1">Issue *</label>
+              <input
+                type="text"
+                name="issue"
+                value={maintenanceForm.issue}
+                onChange={handleMaintenanceChange}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                placeholder="Describe the issue"
+              />
+            </div>
+
+            {/* Notes */}
+            <div className="mb-3">
+              <label className="block text-sm text-gray-400 mb-1">Notes</label>
+              <textarea
+                name="notes"
+                value={maintenanceForm.notes}
+                onChange={handleMaintenanceChange}
+                rows="3"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                placeholder="Additional notes (optional)"
+              />
+            </div>
+
+            {/* Cost */}
+            <div className="mb-3">
+              <label className="block text-sm text-gray-400 mb-1">Estimated Cost</label>
+              <input
+                type="number"
+                name="cost"
+                value={maintenanceForm.cost}
+                onChange={handleMaintenanceChange}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                placeholder="0.00"
+              />
+            </div>
+
+            {/* Status */}
+            {/* <div className="mb-3">
+              <label className="block text-sm text-gray-400 mb-1">Status</label>
+              <select
+                name="status"
+                value={maintenanceForm.status}
+                onChange={handleMaintenanceChange}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+              >
+                <option value="open">Open</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div> */}
+
+            {/* Actions */}
+            <div className="flex justify-end space-x-3 mt-4">
+              <button
+                onClick={() => setShowMaintenanceModal(false)}
+                className="px-4 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors"
+                disabled={isSavingMaintenance}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveMaintenance}
+                disabled={isSavingMaintenance}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg flex items-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSavingMaintenance ? "Saving..." : "Save"}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -257,6 +387,18 @@ export default function BikeDetail({ params }) {
                   : 'Bike is unlocked'
                 }
               </p>
+            </div>
+
+            {/* Mark Maintenance button */}
+            <div className='bg-gray-800 rounded-xl p-5 shadow-md transition-opacity duration-300'>
+              <h3 className='font-semibold text-lg text-white mb-4'>Maintenance</h3>
+              <button
+                onClick={() => setShowMaintenanceModal(true)}
+                disabled={bike.status === 'offline'}
+                className='w-full py-3 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-medium flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+              >
+                <FiCalendar className='mr-2'/> Mark for Maintenance
+              </button>
             </div>
 
             {/* QR Code */}

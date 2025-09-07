@@ -13,6 +13,7 @@ import {
   ArcElement,
 } from "chart.js";
 import { Bar, Pie } from "react-chartjs-2";
+import AnalyticsPageLoader from "../../components/AnalyticsPageLoader";
 
 ChartJS.register(
   CategoryScale,
@@ -166,7 +167,7 @@ export default function AnalyticsPage() {
   ];
 
   if (overviewLoading) {
-    return <div className="text-gray-400">Loading analytics...</div>;
+    return <AnalyticsPageLoader/>
   }
 
   return (

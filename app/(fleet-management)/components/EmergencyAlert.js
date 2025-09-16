@@ -1,103 +1,148 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { GoogleMap, Marker } from "@react-google-maps/api";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+// Fix default marker icons
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
+
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x.src,
+  iconUrl: markerIcon.src,
+  shadowUrl: markerShadow.src,
+});
+
+// Custom red icon
+const redIcon = new L.Icon({
+  iconUrl: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
+  iconSize: [40, 40],
+  iconAnchor: [20, 40],
+});
 
 export default function EmergencyAlertModal() {
-  const [emergencies, setEmergencies] = useState([]);
-  const [showModal, setShowModal] = useState(false);
+  const [alerts, setAlerts] = useState([]);
   const [audio] = useState(
     typeof Audio !== "undefined" ? new Audio("/alert.mp3") : null
   );
 
+  // Poll API every 3s
   useEffect(() => {
-    const interval = setInterval(async () => {
-      const res = await fetch("/api/bikes/emergencies");
-      const data = await res.json();
+    const fetchAlerts = async () => {
+      try {
+        const res = await fetch("/api/fleet/bikes/emergencies");
+        const data = await res.json();
+        if (data.success) {
+          setAlerts(data.emergencies);
 
-      if (data.success) {
-        setEmergencies(data.emergencies);
-
-        if (data.emergencies.length > 0) {
-          setShowModal(true);
-          if (audio) audio.play().catch(() => {});
+          if (data.emergencies.length > 0 && audio) {
+            audio.play().catch(() => {});
+          }
         }
+      } catch (err) {
+        console.error("Error fetching emergencies:", err);
       }
-    }, 3000);
+    };
 
+    fetchAlerts();
+    const interval = setInterval(fetchAlerts, 3000);
     return () => clearInterval(interval);
   }, [audio]);
 
-  if (!showModal || emergencies.length === 0) return null;
+  // Dismiss a single alert
+  const dismissAlert = async (bikeId) => {
+    await fetch("/api/fleet/bikes/emergencies", {
+      method: "PUT",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: bikeId })
+    })
+
+    if (alerts.length === 0 && audio) {
+      audio.pause();
+      audio.currentTime = 0; 
+    }
+  };
+
+  if (alerts.length === 0) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[9999]">
-      <div className="bg-red-50 border-4 border-red-600 rounded-xl shadow-2xl w-[95%] max-w-4xl p-8 relative animate-pulse">
-        {/* Close button */}
-        <button
-          onClick={() => setShowModal(false)}
-          className="absolute top-4 right-4 text-red-700 hover:text-black bg-red-200 rounded-full p-2 hover:bg-red-300 transition-colors"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+      <div className="bg-red-50 border-4 border-red-600 rounded-xl shadow-2xl w-[95%] max-w-4xl p-8 relative animate-pulse overflow-y-auto max-h-[80vh]">
+        {alerts.map((latest) => (
+          <div
+            key={latest.bikeId}
+            className="bg-white p-6 rounded-lg border-2 border-red-300 shadow-md mb-4 relative"
+          >
+            {/* Dismiss Button */}
+            <button
+              onClick={() => dismissAlert(latest.bikeId)}
+              className="absolute top-4 right-4 text-red-700 hover:text-black bg-red-200 rounded-full p-2 hover:bg-red-300 transition-colors"
+            >
+              ✖
+            </button>
 
-        <div className="flex items-center gap-4 mb-6">
-          <div className="bg-red-600 p-4 rounded-full">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-          <h2 className="text-4xl font-extrabold text-red-700 uppercase tracking-wide">
-            Emergency Alert!
-          </h2>
-        </div>
-
-        <div className="space-y-8 max-h-[70vh] overflow-y-auto pr-4">
-          {emergencies.map((e) => (
-            <div key={e.bikeId} className="bg-white p-6 rounded-lg border-2 border-red-300 shadow-md">
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <p className="text-lg font-bold text-gray-800">Bike ID:</p>
-                  <p className="text-2xl font-black text-red-600">{e.bikeId}</p>
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-gray-800">Emergency Type:</p>
-                  <p className="text-2xl font-black text-red-600 uppercase">{e.type}</p>
-                </div>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <p className="text-lg font-bold text-gray-800">Bike ID:</p>
+                <p className="text-2xl font-black text-red-600">
+                  {latest.bikeId}
+                </p>
               </div>
-
-              <div className="h-96 w-full mt-4 rounded-lg overflow-hidden border-2 border-red-400">
-                <GoogleMap
-                  mapContainerStyle={{ height: "100%", width: "100%" }}
-                  center={{ lat: e.location.lat, lng: e.location.lng }}
-                  zoom={15}
-                >
-                  <Marker 
-                    position={{ lat: e.location.lat, lng: e.location.lng }} 
-                    icon={{
-                      url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
-                      scaledSize: new window.google.maps.Size(40, 40)
-                    }}
-                  />
-                </GoogleMap>
+              <div>
+                <p className="text-lg font-bold text-gray-800">
+                  Emergency Type:
+                </p>
+                <p className="text-2xl font-black text-red-600 uppercase">
+                  {latest.type}
+                </p>
               </div>
-
-              <div className="mt-4 p-3 bg-red-100 rounded-lg">
-                <p className="font-bold text-red-800 text-center text-lg">
-                  🚑 EMERGENCY RESPONSE REQUIRED AT THIS LOCATION 🚑
+              <div>
+                <p className="text-lg font-bold text-gray-800">
+                  Time Reported:
+                </p>
+                <p className="text-2xl font-black text-red-600 uppercase">
+                  {new Date(latest.timestamp).toLocaleString()}
                 </p>
               </div>
             </div>
-          ))}
-        </div>
 
-        <div className="mt-6 p-4 bg-red-600 rounded-lg">
-          <p className="text-white text-center font-bold text-xl animate-pulse">
-            ⚠️ IMMEDIATE ATTENTION REQUIRED ⚠️
-          </p>
-        </div>
+            {/* Leaflet Map */}
+            <div className="h-96 w-full mt-4 rounded-lg overflow-hidden border-2 border-red-400">
+              <MapContainer
+                center={[latest.gps.lat, latest.gps.lng]}
+                zoom={15}
+                style={{ height: "100%", width: "100%" }}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <Marker
+                  position={[latest.gps.lat, latest.gps.lng]}
+                  icon={redIcon}
+                >
+                  <Popup>
+                    <div className="text-center">
+                      <p className="font-bold text-red-600">🚨 Emergency</p>
+                      <p>Bike ID: {latest.bikeId}</p>
+                      <p>Type: {latest.type}</p>
+                    </div>
+                  </Popup>
+                </Marker>
+              </MapContainer>
+            </div>
+
+            <div className="mt-4 p-3 bg-red-100 rounded-lg">
+              <p className="font-bold text-red-800 text-center text-lg">
+                🚑 EMERGENCY RESPONSE REQUIRED AT THIS LOCATION 🚑
+              </p>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

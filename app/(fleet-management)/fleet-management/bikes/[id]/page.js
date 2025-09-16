@@ -27,7 +27,7 @@ export default function BikeDetail({ params }) {
 
   const fetchBike = async () => {
     try {
-      const res = await fetch(`/api/bikes/${id}`);
+      const res = await fetch(`/api/fleet/bikes/${id}`);
       const data = await res.json();
       setBike(data);
     } catch (error) {
@@ -40,7 +40,7 @@ export default function BikeDetail({ params }) {
   const toggleLock = async () => {
     if (bike.status === 'offline') return;
     try {
-      const res = await fetch(`/api/bikes/${id}`, {
+      const res = await fetch(`/api/fleet/bikes/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isLocked: !bike.isLocked })
@@ -75,7 +75,7 @@ export default function BikeDetail({ params }) {
 
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/bikes/${id}`, {
+      const res = await fetch(`/api/fleet/bikes/${id}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ adminPassword })
@@ -109,7 +109,7 @@ export default function BikeDetail({ params }) {
     }
     setIsSavingMaintenance(true)
     try {
-      const res = await fetch(`/api/maintenance/post`, {
+      const res = await fetch(`/api/fleet/maintenance/post`, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({

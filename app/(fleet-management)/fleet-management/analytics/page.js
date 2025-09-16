@@ -68,16 +68,16 @@ export default function AnalyticsPage() {
   }
 
   useEffect(() => {
-    fetchJson("/api/analytics/overview", setOverview, setOverviewLoading, setOverviewError);
-    fetchJson("/api/analytics/monthly-usage?months=7", setUsage, setUsageLoading, () => {});
-    fetchJson("/api/analytics/status-distribution", setStatus, setStatusLoading, () => {});
-    fetchJson("/api/analytics/top-users?days=30", setTopUsers, setTopUsersLoading, () => {});
-    fetchJson("/api/maintenance/list", setMaintenance, setMaintenanceLoading, () => {});
+    fetchJson("/api/fleet/analytics/overview", setOverview, setOverviewLoading, setOverviewError);
+    fetchJson("/api/fleet/analytics/monthly-usage?months=7", setUsage, setUsageLoading, () => {});
+    fetchJson("/api/fleet/analytics/status-distribution", setStatus, setStatusLoading, () => {});
+    fetchJson("/api/fleet/analytics/top-users?days=30", setTopUsers, setTopUsersLoading, () => {});
+    fetchJson("/api/fleet/maintenance/list", setMaintenance, setMaintenanceLoading, () => {});
 
     const poll = async () => {
       setActiveLoading(true);
       try {
-        const res = await fetch("/api/analytics/active-sessions", { cache: "no-cache" });
+        const res = await fetch("/api/fleet/analytics/active-sessions", { cache: "no-cache" });
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
         const j = await res.json();
         setActiveSessions(j.sessions || []);
@@ -99,7 +99,7 @@ export default function AnalyticsPage() {
 
   const downloadPDF = async () => {
     try {
-      const res = await fetch("/api/reports/monthly");
+      const res = await fetch("/api/fleet/reports/monthly");
       if (!res.ok) throw new Error("Failed to generate report");
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);

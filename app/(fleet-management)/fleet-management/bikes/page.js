@@ -20,7 +20,7 @@ export default function BikeInventory() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch('/api/bikes');
+      const res = await fetch('/api/fleet/bikes');
       if (!res.ok) throw new Error('Failed to fetch bikes');
       const data = await res.json();
       setBikes(data);
@@ -36,7 +36,7 @@ export default function BikeInventory() {
 
   const toggleLock = async (bikeId, name, currentLockStatus) => {
     try {
-      const res = await fetch(`/api/bikes/${bikeId}`, {
+      const res = await fetch(`/api/fleet/bikes/${bikeId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isLocked: !currentLockStatus, name: name })

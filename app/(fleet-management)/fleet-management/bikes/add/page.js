@@ -24,7 +24,7 @@ export default function AddBikeForm() {
     const fetchBikes = async () => {
       try {
         setIsLoading(true);
-        const res = await fetch('/api/mqtt/available-bikes');
+        const res = await fetch('/api/fleet/mqtt/available-bikes');
         const data = await res.json();
         setAvailableBikes(data.bikes || []);
       } catch (err) {
@@ -56,7 +56,7 @@ export default function AddBikeForm() {
     if (!selectedBike) return toast.error('Please select a bike first');
 
     try {
-      const res = await fetch('/api/bikes', {
+      const res = await fetch('/api/fleet/bikes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...formData, bikeId: selectedBike.bikeId })

@@ -243,7 +243,7 @@ function HeatmapLayer({ activeLayer, startISO, endISO, tauHours }) {
       tauHours: tauHours.toString(),
     });
 
-    fetch(`/api/heatmap/${activeLayer}?` + params.toString(), { signal: controller.signal })
+    fetch(`/api/fleet/heatmap/${activeLayer}?` + params.toString(), { signal: controller.signal })
       .then((res) => res.json())
       .then((payload) => {
         if (!payload?.points?.length) return;

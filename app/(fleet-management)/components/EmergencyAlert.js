@@ -34,7 +34,7 @@ export default function EmergencyAlertModal() {
   useEffect(() => {
     const fetchAlerts = async () => {
       try {
-        const res = await fetch("/api/bikes/emergencies");
+        const res = await fetch("/api/fleet/bikes/emergencies");
         const data = await res.json();
         if (data.success) {
           setAlerts(data.emergencies);
@@ -55,7 +55,7 @@ export default function EmergencyAlertModal() {
 
   // Dismiss a single alert
   const dismissAlert = async (bikeId) => {
-    await fetch("/api/bikes/emergencies", {
+    await fetch("/api/fleet/bikes/emergencies", {
       method: "PUT",
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: bikeId })

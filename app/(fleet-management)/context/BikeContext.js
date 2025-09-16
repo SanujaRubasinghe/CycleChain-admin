@@ -14,7 +14,7 @@ export const BikeProvider = ({ children }) => {
     const fetchBikes = async () => {
       try {
         // In a real app, you would fetch from your API
-        const res = await fetch('/api/bikes')
+        const res = await fetch('/api/fleet/bikes')
         const data = await res.json()
         setBikes(data);
         setLoading(false);

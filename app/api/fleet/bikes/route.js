@@ -1,5 +1,5 @@
 import dbConnect from '@/lib/mongodb';
-import Bike from '../../../models/Bike';
+import Bike from '@/models/Bike';
 import { v4 as uuidv4 } from 'uuid';
 import QRCode from 'qrcode';
 import { getMqttClient } from '@/lib/mqttClient';

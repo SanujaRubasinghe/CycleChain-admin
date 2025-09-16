@@ -9,6 +9,8 @@ const BikeSchema = new mongoose.Schema({
     enum: ['available', 'in_use', 'maintenance', 'locked', "provisioning", "require_collection","offline"], 
     default: 'provisioning' 
   },
+  mileage: { type: Number, min: 0, default: 0},
+  mileage_at_last_maintenance: { type: Number, min: 0, default: 0},
   battery: { type: Number, min: 0, max: 100, default: 100 },
   currentLocation: {
     lat: { type: Number, required: true },

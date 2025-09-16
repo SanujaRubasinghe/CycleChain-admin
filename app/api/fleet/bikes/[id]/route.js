@@ -54,7 +54,9 @@ export async function DELETE(request , {params}) {
   const {id} = await params
   const {adminPassword} = await request.json()
 
-  console.log(id)
+  const client = getMqttClient()
+  const topic = `bike/B001/unregister`
+  const message = "true"
 
   try {
     await dbConnect()
@@ -71,6 +73,13 @@ export async function DELETE(request , {params}) {
     if (!bike) {
       return NextResponse.json({message: "Bike not found"}, {status: 404})
     }
+
+    client.publish(topic, message, {qos: 1}, (err) => {
+      if (err) {
+          return new Response(JSON.stringify({success: false, error: err.message}), {status: 500})
+      }
+      console.log("MQTT command sent:",topic,message)
+    })
 
     await Bike.findOneAndDelete(id)
 

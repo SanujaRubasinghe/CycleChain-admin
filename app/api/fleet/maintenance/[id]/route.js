@@ -77,7 +77,7 @@ export async function PUT(request, {params}) {
         }
 
         const updatedRecord = await MaintenanceRecord.findByIdAndUpdate(
-            params.id,
+            id,
             body,
             {new: true}
         ).populate('assigned_to', 'name email phone specialization')

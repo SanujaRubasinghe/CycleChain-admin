@@ -46,10 +46,6 @@ export default function AnalyticsPage() {
   const [topUsers, setTopUsers] = useState([]);
   const [topUsersLoading, setTopUsersLoading] = useState(true);
 
-  // Maintenance
-  const [maintenance, setMaintenance] = useState([]);
-  const [maintenanceLoading, setMaintenanceLoading] = useState(true);
-
   const activePollRef = useRef(null);
 
   async function fetchJson(url, setData, setLoading, setError) {
@@ -72,8 +68,6 @@ export default function AnalyticsPage() {
     fetchJson("/api/fleet/analytics/monthly-usage?months=7", setUsage, setUsageLoading, () => {});
     fetchJson("/api/fleet/analytics/status-distribution", setStatus, setStatusLoading, () => {});
     fetchJson("/api/fleet/analytics/top-users?days=30", setTopUsers, setTopUsersLoading, () => {});
-    fetchJson("/api/fleet/maintenance/list", setMaintenance, setMaintenanceLoading, () => {});
-
     const poll = async () => {
       setActiveLoading(true);
       try {
@@ -278,30 +272,8 @@ export default function AnalyticsPage() {
                 ))
               )}
             </div>
-
-            <hr className="my-4 border-gray-700" />
-
-            <h3 className="text-lg font-semibold text-white mb-3">Recent Maintenance</h3>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {maintenanceLoading ? (
-                <div className="text-sm text-gray-400">Loading maintenance…</div>
-              ) : maintenance.records.length === 0 ? (
-                <div className="text-sm text-gray-400">No maintenance records</div>
-              ) : (
-                maintenance.records.map((m, i) => (
-                  <div key={i} className="text-sm text-gray-300 bg-gray-900/20 p-2 rounded-md">
-                    <div className="font-medium">Bike: {m.bike_id}</div>
-                    <div className="text-gray-400">{m.issue || m.notes || "Maintenance"}</div>
-                    <div className="text-xs text-gray-500">{new Date(m.reported_at).toLocaleString()}</div>
-                  </div>
-                ))
-              )}
-            </div>
           </div>
         </div>
-
-        {/* small footer / debug */}
-        <div className="mt-8 text-xs text-gray-500">APIs: /api/analytics/* • Data updates polled every 10s for active sessions</div>
       </div>
     </div>
   );

@@ -37,7 +37,8 @@ export default function MaintenanceForm({ record, onClose }) {
   const fetchTechnicians = async () => {
     try {
       const response = await fetch('/api/fleet/technicians');
-      const data = await response.json();
+      let data = await response.json();
+      data = data.filter(d => d.status === 'available')
       setTechnicians(data);
     } catch (error) {
       console.error('Error fetching technicians:', error);
@@ -181,7 +182,7 @@ export default function MaintenanceForm({ record, onClose }) {
               className="w-full bg-gray-700 border border-gray-600 rounded-md p-2 text-white"
             >
               <option value="">Unassigned</option>
-              {technicians.map(tech => (
+              {technicians.map(tech => ( 
                 <option key={tech._id} value={tech._id}>
                   {tech.name} ({tech.specialization})
                 </option>

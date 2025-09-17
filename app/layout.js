@@ -9,7 +9,7 @@ import { initMqttStatusServer } from '@/lib/initMqtt';
 initMqttStatusServer()
 
 export const metadata = {
-  title: "Smart E-Bike System",
+  title: "CycleChain - Admin Panel",
   description: "Fleet management for smart e-bikes",
 };
 

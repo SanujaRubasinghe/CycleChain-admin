@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import MaintenanceItem from './MaintenanceItem';
 import MaintenanceForm from './MaintenanceForm';
+import toast from 'react-hot-toast';
 
 export default function MaintenanceList() {
   const [records, setRecords] = useState([]);
@@ -53,7 +54,7 @@ export default function MaintenanceList() {
         method: 'POST'
       });
       const result = await response.json();
-      alert(result.message);
+      toast.success(result.message);
       fetchRecords(); 
     } catch (error) {
       console.error('Error generating maintenance:', error);

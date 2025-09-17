@@ -9,21 +9,14 @@ import { useJsApiLoader } from '@react-google-maps/api';
 
 
 export default function RootLayout({ children }) {
-  const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
-    libraries: ["places"], // add any other libraries you need
-  });
-
-  if (loadError) return <p>Error loading Google Maps</p>;
-  if (!isLoaded) return <p>Loading Google Maps...</p>;
-
+  
   return (
     <html lang="en">
       <body className="bg-gray-100">
         <BikeProvider>
           <div className="lg:pl-64">
             <Sidebar />
-            <EmergencyAlert />
+            {/* <EmergencyAlert /> */}
             {children}
           </div>
           <Toaster position="top-right" />

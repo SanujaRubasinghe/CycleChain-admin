@@ -39,3 +39,27 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Optional custom classes */
+.card {
+  @apply bg-surface border border-border rounded-xl shadow p-6;
+}
+.btn {
+  @apply px-4 py-2 rounded font-medium transition;
+}
+.btn-primary {
+  @apply btn bg-primary text-white hover:bg-blue-500;
+}
+.btn-ghost {
+  @apply btn bg-transparent text-subtext hover:text-white;
+}
+.input {
+  @apply w-full px-3 py-2 rounded border border-border bg-surface text-white;
+}
+.label {
+  @apply block text-sm mb-1 text-subtext;
+}

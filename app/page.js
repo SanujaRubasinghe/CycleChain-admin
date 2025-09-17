@@ -39,3 +39,17 @@ export default function Home() {
     </div>
   );
 }
+
+// export default function Home() {
+//   return (
+//     <main style={{ padding: 16 }}>
+//       <h1>CycleChain</h1>
+//       <ul>
+//         <li><a href="/dashboard">Dashboard</a></li>
+//         <li><a href="/bikes">Bikes</a></li>
+//         <li><a href="/analytics">Analytics</a></li>
+//         <li><a href="/settings">Settings</a></li>
+//       </ul>
+//     </main>
+//   );
+

@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FiTool, FiHome, FiPieChart, FiSettings, FiUsers, FiCreditCard, FiCalendar, FiChevronDown, FiChevronRight } from 'react-icons/fi';
+import { FiMessageSquare,FiTool, FiHome, FiPieChart, FiSettings, FiUsers, FiCreditCard, FiCalendar, FiChevronDown, FiChevronRight } from 'react-icons/fi';
 import { LuBike } from 'react-icons/lu';
 import { useState } from 'react';
 
@@ -25,7 +25,7 @@ export default function Sidebar() {
   const menuSections = [
     {
       id: 'fleetManagement',
-      title: 'Fleet Management',
+      title: 'Fleet',
       icon: <LuBike className="text-lg" />,
       items: [
         { href: '/fleet-management', icon: <FiHome />, label: 'Dashboard' },
@@ -35,8 +35,16 @@ export default function Sidebar() {
       ]
     },
     {
+      id: 'feedbackManagement',
+      title: 'Feedback',
+      icon: <FiMessageSquare className="text-lg" />,
+      items: [
+        { href: '/feedback-management', icon: <FiHome />, label: 'Overview' },
+      ]
+    },
+    {
       id: 'userManagement',
-      title: 'User Management',
+      title: 'User',
       icon: <FiUsers className="text-lg" />,
       items: [
         { href: '/user-management', icon: <FiUsers />, label: 'Users Overview' },
@@ -46,7 +54,7 @@ export default function Sidebar() {
     },
     {
       id: 'paymentManagement',
-      title: 'Payment Management',
+      title: 'Payment',
       icon: <FiCreditCard className="text-lg" />,
       items: [
         { href: '/payment-management', icon: <FiHome />, label: 'Transactions' },
@@ -56,7 +64,7 @@ export default function Sidebar() {
     },
     {
       id: 'reservationManagement',
-      title: 'Reservation Management',
+      title: 'Reservation',
       icon: <FiCalendar className="text-lg" />,
       items: [
         { href: '/reservation-management', icon: <FiHome />, label: 'Reservations' },

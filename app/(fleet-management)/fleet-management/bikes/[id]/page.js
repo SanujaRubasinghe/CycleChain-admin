@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { FiLock, FiUnlock, FiMapPin, FiBattery, FiCalendar, FiArrowLeft, FiDownload, FiExternalLink, FiTrash2 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import html2canvas from 'html2canvas';
+import MaintenanceForm from '@/app/(fleet-management)/components/MaintenanceForm';
 
 export default function BikeDetail({ params }) {
   const [bike, setBike] = useState(null);
@@ -163,7 +164,7 @@ export default function BikeDetail({ params }) {
   return (
     <div className="min-h-screen bg-gray-900 p-4 lg:p-8 relative">
       {/* Offline Modal */}
-      {bike.status === 'offline' && (
+      {/* {bike.status === 'offline' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
           <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full border border-rose-500/40 shadow-lg text-center animate-fade-in">
             <h3 className="text-2xl font-bold text-rose-400 mb-4">Bike Offline</h3>
@@ -178,89 +179,16 @@ export default function BikeDetail({ params }) {
             </button>
           </div>
         </div>
-      )}
+      )} */}
 
       {showMaintenanceModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full border border-amber-500/30 shadow-lg">
-            <h3 className="text-lg font-semibold text-white mb-4">Mark for Maintenance</h3>
-
-            {/* Issue */}
-            <div className="mb-3">
-              <label className="block text-sm text-gray-400 mb-1">Issue *</label>
-              <input
-                type="text"
-                name="issue"
-                value={maintenanceForm.issue}
-                onChange={handleMaintenanceChange}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                placeholder="Describe the issue"
-              />
-            </div>
-
-            {/* Notes */}
-            <div className="mb-3">
-              <label className="block text-sm text-gray-400 mb-1">Notes</label>
-              <textarea
-                name="notes"
-                value={maintenanceForm.notes}
-                onChange={handleMaintenanceChange}
-                rows="3"
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                placeholder="Additional notes (optional)"
-              />
-            </div>
-
-            {/* Cost */}
-            <div className="mb-3">
-              <label className="block text-sm text-gray-400 mb-1">Estimated Cost</label>
-              <input
-                type="number"
-                name="cost"
-                value={maintenanceForm.cost}
-                onChange={handleMaintenanceChange}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                placeholder="0.00"
-              />
-            </div>
-
-            {/* Status */}
-            {/* <div className="mb-3">
-              <label className="block text-sm text-gray-400 mb-1">Status</label>
-              <select
-                name="status"
-                value={maintenanceForm.status}
-                onChange={handleMaintenanceChange}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-              >
-                <option value="open">Open</option>
-                <option value="in_progress">In Progress</option>
-                <option value="completed">Completed</option>
-              </select>
-            </div> */}
-
-            {/* Actions */}
-            <div className="flex justify-end space-x-3 mt-4">
-              <button
-                onClick={() => setShowMaintenanceModal(false)}
-                className="px-4 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors"
-                disabled={isSavingMaintenance}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveMaintenance}
-                disabled={isSavingMaintenance}
-                className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg flex items-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSavingMaintenance ? "Saving..." : "Save"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <MaintenanceForm 
+          record={{bikeId: bike.bikeId}}
+          onClose={() => setShowMaintenanceModal(false)}
+        />
       )}
 
-      <div className={`max-w-6xl mx-auto ${bike.status === 'offline' ? 'pointer-events-none select-none opacity-75' : ''}`}>
+      <div className={`max-w-6xl mx-auto `}>
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center mb-4">
@@ -394,7 +322,7 @@ export default function BikeDetail({ params }) {
               <h3 className='font-semibold text-lg text-white mb-4'>Maintenance</h3>
               <button
                 onClick={() => setShowMaintenanceModal(true)}
-                disabled={bike.status === 'offline'}
+                // disabled={bike.status === 'offline'}
                 className='w-full py-3 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-medium flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
               >
                 <FiCalendar className='mr-2'/> Mark for Maintenance

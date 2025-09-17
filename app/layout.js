@@ -6,6 +6,7 @@ import Sidebar from './(fleet-management)/components/Sidebar';
 import EmergencyAlertModalWrapper from './(fleet-management)/components/EmergencyAlertWrapper';
 import { initMqttStatusServer } from '@/lib/initMqtt';
 
+
 initMqttStatusServer()
 
 export const metadata = {
@@ -14,6 +15,7 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
+
   return (
     <html lang="en" className="dark">
       <body className="bg-gray-900 text-gray-100 transition-colors duration-200">
@@ -21,9 +23,11 @@ export default function RootLayout({ children }) {
         <BikeProvider>
           <div className="lg:pl-64">
             <Sidebar />
+
             <main className="min-h-screen">
               {children}
             </main>
+
           </div>
           <Toaster 
             position="top-right" 

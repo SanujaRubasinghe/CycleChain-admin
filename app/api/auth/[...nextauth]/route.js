@@ -1,63 +1,51 @@
-import NextAuth from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import User from '@/models/User';
-import { connectToDB } from '@/lib/db';
-import bcrypt from 'bcryptjs';
+import NextAuth from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
+import { connectToDB } from "@/lib/db";
+import User from "@/models/User";
 
 export const authOptions = {
   providers: [
     CredentialsProvider({
-      name: 'credentials',
-      credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' }
-      },
       async authorize(credentials) {
         await connectToDB();
-        
-        const { email, password } = credentials;
-        
-        // Find user by email
-        const user = await User.findOne({ email });
-        if (!user) {
-          throw new Error('Invalid email or password');
-        }
-        
-        // Check password
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) {
-          throw new Error('Invalid email or password');
-        }
-        
+        const user = await User.findOne({ email: credentials.email });
+        if (!user) throw new Error("No user found");
+
+        const isValid = await bcrypt.compare(credentials.password, user.password);
+        if (!isValid) throw new Error("Invalid password");
+
         return {
           id: user._id.toString(),
           email: user.email,
-          name: user.username,
-          role: user.role
+          username: user.username,
+          role: user.role,
         };
-      }
-    })
+      },
+    }),
   ],
+  session: { strategy: "jwt" },
   callbacks: {
     async jwt({ token, user }) {
-      if (user) {
-        token.role = user.role;
-        token.userId = user.id;
-      }
+      if (user) token.role = user.role;
       return token;
     },
     async session({ session, token }) {
       if (token) {
         session.user.role = token.role;
-        session.user.id = token.userId;
+        session.user.id = token.sub;
       }
       return session;
-    }
+    },
+    async redirect({ url, baseUrl }) {
+      // ✅ force admins to /dashboard
+      if (url.startsWith("/dashboard")) return url;
+      return baseUrl + (url.includes("admin") ? "/dashboard" : "/");
+    },
   },
   pages: {
-    signIn: '/login',
-    signUp: '/register'
-  }
+    signIn: "/login", // ✅ because your admin login is at /login
+  },
 };
 
 const handler = NextAuth(authOptions);

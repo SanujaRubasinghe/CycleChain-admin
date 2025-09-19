@@ -1,30 +1,89 @@
-// app/api/products/route.js
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectToDB } from "@/lib/db";
 import Product from "@/models/Product";
+import { writeFile, mkdir } from "fs/promises";
+import path from "path";
+import crypto from "crypto";
+
+export const dynamic = "force-dynamic";
+
+function slugify(str) {
+  return String(str)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
+}
+
+const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "products");
+
+async function saveFile(file) {
+  await mkdir(UPLOAD_DIR, { recursive: true });
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const ext =
+    (file.name && path.extname(file.name)) ||
+    (file.type && `.${file.type.split("/")[1]}`) ||
+    "";
+  const name = `${crypto.randomBytes(8).toString("hex")}${ext}`;
+  const fullPath = path.join(UPLOAD_DIR, name);
+  await writeFile(fullPath, bytes);
+  return `/uploads/products/${name}`;
+}
+
+function forbid() {
+  return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+}
 
 export async function GET() {
   await connectToDB();
-  const products = await Product.find({ inStock: true }).sort({ category: 1, title: 1 });
-  return NextResponse.json(products);
+  const docs = await Product.find().sort({ createdAt: -1 }).lean();
+  return NextResponse.json(docs);
 }
 
-// DEV ONLY: one-time seeding (no auth). Remove in production if you want.
-export async function POST() {
+export async function POST(req) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.role || session.user.role !== "admin") return forbid();
+
   await connectToDB();
-  const count = await Product.countDocuments();
-  if (count > 0) return NextResponse.json({ seeded: false, reason: "already seeded" });
 
-  await Product.insertMany([
-    { title: "Aero Helmet", slug: "aero-helmet", category: "helmets", price: 12000, inStock: true },
-    { title: "City Lock", slug: "city-lock", category: "locks", price: 4500, inStock: true },
-    { title: "Thermo Bottle", slug: "thermo-bottle", category: "bottles", price: 2500, inStock: true },
-    { title: "Gel Seat Cover", slug: "gel-seat-cover", category: "seat-covers", price: 3900, inStock: true },
-    { title: "Grip Gloves", slug: "grip-gloves", category: "gloves", price: 3200, inStock: true },
-    { title: "E-Bike Cable", slug: "ebike-cable", category: "ebike-cables", price: 5400, inStock: true },
-    { title: "E-Bike Charger 48V", slug: "ebike-charger-48v", category: "chargers", price: 18500, inStock: true },
-    { title: "Commuter Backpack", slug: "commuter-backpack", category: "backpacks", price: 16500, inStock: true },
-  ]);
+  const form = await req.formData();
+  const title = form.get("title");
+  const category = String(form.get("category") || "").toLowerCase();
+  const price = Number(form.get("price"));
+  const inStock = String(form.get("inStock")) === "true" || form.get("inStock") === "on";
+  const imageFile = form.get("image");
 
-  return NextResponse.json({ seeded: true });
+  if (!title || !category || Number.isNaN(price)) {
+    return NextResponse.json(
+      { message: "title, category and price are required" },
+      { status: 400 }
+    );
+  }
+
+  // unique slug from title
+  let base = slugify(title);
+  if (!base) base = crypto.randomBytes(4).toString("hex");
+  let slug = base;
+  let i = 1;
+  while (await Product.findOne({ slug })) {
+    slug = `${base}-${i++}`;
+  }
+
+  let imageUrl = "";
+  if (imageFile && typeof imageFile === "object" && imageFile.size > 0) {
+    imageUrl = await saveFile(imageFile);
+  }
+
+  const doc = await Product.create({
+    title,
+    slug,
+    category,
+    price,
+    image: imageUrl,
+    inStock,
+  });
+
+  return NextResponse.json(doc, { status: 201 });
 }

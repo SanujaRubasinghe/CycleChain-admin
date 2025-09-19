@@ -1,83 +1,57 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { signIn } from "next-auth/react";
+import Link from "next/link";
 
-export default function RegisterPage() {
-  const router = useRouter();
-  const search = useSearchParams();
-  const callbackUrl = search.get("callbackUrl") || "/store";
-
+export default function AdminRegisterPage() {
   const [username, setUsername] = useState("");
   const [email, setEmail]     = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
-  const [ok, setOk] = useState("");
+  const [show, setShow] = useState(false);
+  const [err, setErr]   = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const onSubmit = async (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    setErr(""); setOk(""); setLoading(true);
-
+    setErr("");
+    setSaving(true);
     try {
-      // 1) call our register API
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ username, email, password }),
       });
-
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.message || "Registration failed");
+      if (!res.ok) throw new Error(data.message || "Failed to register admin");
 
-      setOk("Account created! Signing you in…");
-
-      // 2) auto sign-in with credentials
-      const login = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-        callbackUrl,
-      });
-
-      if (login?.error) {
-        // fallback: go to login page
-        router.push("/login");
-        return;
-      }
-
-      router.push(callbackUrl);
-      router.refresh();
+      // success: go to /login (change to dashboard if you auto-login)
+      window.location.href = "/login";
     } catch (e) {
-      setErr(e.message || "Something went wrong");
+      setErr(e.message || "Failed to register admin");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-surface">
-      <div className="w-full max-w-md bg-surface border border-border rounded-xl shadow-lg p-8">
-        <h2 className="text-2xl font-semibold mb-6 text-center text-white">Create account</h2>
+    <div className="min-h-screen bg-gradient-to-br from-background to-surface grid place-items-center px-4">
+      <div className="w-full max-w-md bg-surface border border-border rounded-2xl shadow-xl p-8">
+        <h1 className="text-2xl font-semibold text-center text-white">Admin Register</h1>
+        <p className="text-subtext text-center mt-1">
+          Create an administrator account for the Cycle Chain dashboard.
+        </p>
 
-        {err && <div className="p-3 border border-red-500/40 text-red-400 rounded mb-3">{err}</div>}
-        {ok &&  <div className="p-3 border border-green-500/40 text-green-400 rounded mb-3">{ok}</div>}
+        {err && <div className="mt-4 text-red-400 text-center">{err}</div>}
 
-        <form className="space-y-4" onSubmit={onSubmit}>
+        <form onSubmit={submit} className="mt-6 space-y-4">
           <div>
             <label className="label">Username</label>
             <input
-              type="text"
-              placeholder="e.g. bunny123"
               className="input"
               value={username}
-              onChange={(e)=>setUsername(e.target.value)}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="e.g. admin01"
               required
-              minLength={2}
             />
           </div>
 
@@ -85,46 +59,44 @@ export default function RegisterPage() {
             <label className="label">Email</label>
             <input
               type="email"
-              placeholder="you@example.com"
               className="input"
               value={email}
-              onChange={(e)=>setEmail(e.target.value)}
-              autoComplete="email"
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@company.com"
               required
             />
           </div>
 
           <div>
             <label className="label">Password</label>
-            <div className="flex items-center gap-2">
+            <div className="flex gap-2">
               <input
-                type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
+                type={show ? "text" : "password"}
                 className="input flex-1"
                 value={password}
-                onChange={(e)=>setPassword(e.target.value)}
-                autoComplete="new-password"
-                required
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••"
                 minLength={6}
+                required
               />
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
                 className="btn-ghost text-sm"
+                onClick={() => setShow((s) => !s)}
               >
-                {showPassword ? "Hide" : "Show"}
+                {show ? "Hide" : "Show"}
               </button>
             </div>
+            <p className="text-xs text-subtext mt-1">Minimum 6 characters.</p>
           </div>
 
-          <button type="submit" className="btn-primary w-full" disabled={loading}>
-            {loading ? "Creating…" : "Create account"}
+          <button className="btn-primary w-full" disabled={saving}>
+            {saving ? "Creating…" : "Create admin account"}
           </button>
         </form>
 
         <p className="text-sm text-subtext mt-6 text-center">
-          Already have an account?{" "}
-          <Link href="/login" className="text-primary hover:underline">Sign in</Link>
+          Already an admin? <Link href="/login" className="text-primary hover:underline">Sign in</Link>
         </p>
       </div>
     </div>

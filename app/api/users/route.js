@@ -1,72 +1,46 @@
-import { NextResponse } from 'next/server';
-import User from '@/models/User';
-import { connectToDB } from '@/lib/db';
-import { getToken } from 'next-auth/jwt';
+// app/api/admin/users/route.js
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { connectToDB } from "@/lib/db";
+import User from "@/models/User";
 
-// Get all users (admin only)
-export async function GET(request) {
-  try {
-    await connectToDB();
-    
-    // Check if user is admin
-    const token = await getToken({ req: request });
-    if (!token || token.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    
-    const users = await User.find({}).select('-password');
-    return NextResponse.json(users);
-  } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to fetch users' },
-      { status: 500 }
-    );
-  }
+export const dynamic = "force-dynamic";
+
+function forbid() {
+  return NextResponse.json({ message: "Forbidden" }, { status: 403 });
 }
 
-// Create a new user (admin only)
-export async function POST(request) {
-  try {
-    await connectToDB();
-    
-    // Check if user is admin
-    const token = await getToken({ req: request });
-    if (!token || token.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    
-    const { username, email, password, role, walletAddress } = await request.json();
-    
-    // Check if user already exists
-    const existingUser = await User.findOne({
-      $or: [{ email }, { username }]
-    });
-    
-    if (existingUser) {
-      return NextResponse.json(
-        { error: 'User already exists' },
-        { status: 400 }
-      );
-    }
-    
-    // Create new user (password will be hashed in the model)
-    const user = new User({
-      username,
-      email,
-      password,
-      role: role || 'user',
-      walletAddress: walletAddress || ''
-    });
-    
-    await user.save();
-    
-    // Return user without password
-    const userWithoutPassword = await User.findById(user._id).select('-password');
-    return NextResponse.json(userWithoutPassword, { status: 201 });
-  } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to create user' },
-      { status: 500 }
-    );
+/**
+ * GET /api/admin/users
+ * ?q=search (by email/username)
+ * returns: [{ _id, email, username, role, createdAt }]
+ */
+export async function GET(req) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user || session.user.role !== "admin") return forbid();
+
+  await connectToDB();
+
+  const { searchParams } = new URL(req.url);
+  const q = (searchParams.get("q") || "").trim();
+
+  const filter = {};
+  if (q) {
+    filter.$or = [
+      { email: { $regex: q, $options: "i" } },
+      { username: { $regex: q, $options: "i" } },
+    ];
   }
+
+  const users = await User.find(filter, {
+    email: 1,
+    username: 1,
+    role: 1,
+    createdAt: 1,
+  })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  return NextResponse.json(users);
 }

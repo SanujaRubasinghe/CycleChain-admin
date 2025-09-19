@@ -1,30 +1,37 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
-const label = (c) =>
-  ({
-    helmets: "Helmets",
-    locks: "Bike Locks",
-    bottles: "Water Bottles",
-    "seat-covers": "Seat Covers",
-    gloves: "Gloves",
-    "ebike-cables": "E-Bike Cables",
-    chargers: "Chargers",
-    backpacks: "Backpacks",
-  }[c] || c);
-
-export default function StorePage() {
+export default function AdminStorePage() {
+  const router = useRouter();
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const load = async () => {
     try {
       setLoading(true);
       setErr("");
-      const res = await fetch("/api/products", { cache: "no-store" });
-      if (!res.ok) throw new Error("Failed to load products");
+
+      const res = await fetch("/api/products", {
+        cache: "no-store",
+        credentials: "include",
+      });
+
+      if (res.status === 401) {
+        router.push("/login?callbackUrl=/store");
+        return;
+      }
+
+      const ct = res.headers.get("content-type") || "";
+      if (!ct.includes("application/json")) {
+        const text = await res.text();
+        throw new Error(
+          `Unexpected response (status ${res.status}). ${text?.slice(0, 120)}`
+        );
+      }
+
       const data = await res.json();
       setProducts(Array.isArray(data) ? data : []);
     } catch (e) {
@@ -35,54 +42,46 @@ export default function StorePage() {
   };
 
   useEffect(() => {
-    load();
+    let ignore = false;
+    (async () => {
+      await load();
+    })();
+    return () => {
+      ignore = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const seed = async () => {
+  const remove = async (id, title) => {
+    if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
     try {
-      const r = await fetch("/api/products", { method: "POST" });
-      const j = await r.json();
-      alert(j.seeded ? "Seeded products" : j.reason || "Already seeded");
-      load();
-    } catch {
-      alert("Seeding failed");
-    }
-  };
-
-  const add = async (id) => {
-    try {
-      const res = await fetch("/api/store-cart", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const r = await fetch(`/api/products/${id}`, {
+        method: "DELETE",
         credentials: "include",
-        body: JSON.stringify({ productId: id, qty: 1 }),
       });
-      if (res.status === 401) {
-        window.location.href = "/login?callbackUrl=/store";
-        return;
+      if (!r.ok) {
+        let msg = "";
+        try {
+          msg = (await r.json()).message;
+        } catch {
+          msg = await r.text();
+        }
+        throw new Error(msg || "Delete failed");
       }
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j.message || "Failed to add");
-      }
-      alert("Added to cart");
+      // Refresh list locally without a full reload
+      setProducts((prev) => prev.filter((p) => p._id !== id));
     } catch (e) {
-      alert(e.message || "Failed to add");
+      alert(e.message || "Delete failed");
     }
   };
 
   return (
-    // Full-screen gradient background to match your theme
-    <div className="min-h-screen bg-gradient-to-br from-background to-surface">
-      <div className="container mx-auto px-4 py-10">
+    <div className="min-h-screen bg-gradient-to-br from-background to-surface px-4 py-8">
+      <div className="container mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-semibold text-white">Cycle Store</h1>
-          <a
-            href="/cart"
-            className="btn btn-primary"
-            title="Go to cart"
-          >
-            Cart
+          <h1 className="text-2xl font-semibold text-white">Store (Admin)</h1>
+          <a href="/store/new" className="btn btn-primary">
+            Add Item
           </a>
         </div>
 
@@ -90,43 +89,52 @@ export default function StorePage() {
         {err && <div className="card p-4 text-red-400">{err}</div>}
 
         {!loading && !err && products.length === 0 && (
-          <div className="card p-4 flex items-center justify-between">
-            <div>No products found.</div>
-            <button className="btn btn-primary" onClick={seed}>
-              Seed demo products
-            </button>
+          <div className="card p-6 flex items-center justify-between">
+            <span>No items yet. Create your first product.</span>
+            <a href="/store/new" className="btn btn-primary">
+              Add Item
+            </a>
           </div>
         )}
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {products.map((p) => (
-            <div key={p._id} className="card p-4 flex flex-col">
-              {/* Image (if available) */}
-              <div className="h-36 rounded-xl bg-surface border border-border mb-3 overflow-hidden">
-                {p.image ? (
-                  // using <img> keeps it simple; you can swap for next/image if preferred
-                  <img
-                    src={p.image}
-                    alt={p.title}
-                    className="w-full h-full object-cover"
-                  />
-                ) : null}
+        {!loading && !err && products.length > 0 && (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {products.map((p) => (
+              <div key={p._id} className="card p-4 flex flex-col">
+                <div className="h-36 rounded-xl bg-surface border border-border overflow-hidden mb-3">
+                  {p.image ? (
+                    <img
+                      src={p.image}
+                      alt={p.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-subtext">
+                      No image
+                    </div>
+                  )}
+                </div>
+                <div className="text-sm text-subtext">{p.category}</div>
+                <div className="text-white font-medium line-clamp-2">
+                  {p.title}
+                </div>
+                <div className="mt-1">LKR {p.price}</div>
+
+                <div className="flex gap-2 mt-4">
+                  <a href={`/store/${p._id}/edit`} className="btn btn-ghost">
+                    Edit
+                  </a>
+                  <button
+                    className="btn btn-ghost"
+                    onClick={() => remove(p._id, p.title)}
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
-
-              <div className="text-sm text-subtext">{label(p.category)}</div>
-              <div className="text-lg font-medium text-white">{p.title}</div>
-              <div className="mt-1">LKR {p.price}</div>
-
-              <button
-                className="btn btn-primary mt-4"
-                onClick={() => add(p._id)}
-                disabled={!p.inStock}
-              >
-                {p.inStock ? "Add to Cart" : "Out of stock"}
-              </button>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,13 +1,40 @@
+
+// admin/models/User.js
 import mongoose from "mongoose";
 
-const userSchema = new mongoose.Schema({
-  _id: { type: String },
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  username: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now },
-  lastSeenAt: { type: Date },
-  metadata: { type: mongoose.Schema.Types.Mixed },
-});
+const UserSchema = new mongoose.Schema(
+  {
+    username: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      minlength: 3,
+      maxlength: 30,
+    },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      lowercase: true,
+    },
+    password: {
+      type: String,
+      required: true,
+      minlength: 6,
+    },
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
+    },
+    walletAddress: { type: String, default: "" },
+  },
+  { timestamps: true }
+);
 
-export default mongoose.models.User || mongoose.model("User", userSchema);
+// Avoid OverwriteModelError in dev
+const User = mongoose.models.User || mongoose.model("User", UserSchema);
+export default User;
+

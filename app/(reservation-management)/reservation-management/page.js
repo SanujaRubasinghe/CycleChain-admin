@@ -6,7 +6,7 @@ import Head from 'next/head';
 // Real API functions to connect to your backend
 const fetchReservations = async () => {
     try {
-        const response = await fetch('/api/reservations');
+        const response = await fetch('/api/reservation');
         if (!response.ok) {
             throw new Error('Failed to fetch reservations');
         }
@@ -41,7 +41,7 @@ const createReservation = async (reservationData) => {
     try {
         console.log('Creating reservation:', reservationData);
 
-        const response = await fetch('/api/reservations', {
+        const response = await fetch('/api/reservation', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -75,7 +75,7 @@ const updateReservation = async (id, updates) => {
     try {
         console.log('Updating reservation:', id, updates);
 
-        const response = await fetch(`/api/reservations/${id}`, {
+        const response = await fetch(`/api/reservation/${id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -107,7 +107,7 @@ const updateReservation = async (id, updates) => {
 
 const deleteReservation = async (id) => {
     try {
-        const response = await fetch(`/api/reservations/${id}`, {
+        const response = await fetch(`/api/reservation/${id}`, {
             method: 'DELETE',
         });
 
@@ -294,38 +294,8 @@ export default function ReservationAdminPanel() {
                 <link rel="icon" href="/favicon.ico" />
             </Head>
 
-            {/* Sidebar and Main Content */}
+            {/* Main Content */}
             <div className="flex">
-                {/* Sidebar */}
-                <div className="w-64 bg-gray-800 text-white min-h-screen">
-                    <div className="p-4 border-b border-gray-700">
-                        <h1 className="text-xl font-bold">Bike Reservations</h1>
-                        <p className="text-sm text-gray-400">Admin Panel</p>
-                    </div>
-                    <nav className="p-4">
-                        <ul>
-                            <li className="mb-2">
-                                <a href="#" className="flex items-center p-2 rounded bg-gray-700">
-                                    <span className="mr-2">📊</span>
-                                    Dashboard
-                                </a>
-                            </li>
-                            <li className="mb-2">
-                                <a href="/analysis" className="flex items-center p-2 rounded hover:bg-gray-700">
-                                    <span className="mr-2">📈</span>
-                                    Analytics
-                                </a>
-                            </li>
-                            <li className="mb-2">
-                                <a href="/reports" className="flex items-center p-2 rounded hover:bg-gray-700">
-                                    <span className="mr-2">📄</span>
-                                    Reports
-                                </a>
-                            </li>
-                        </ul>
-                    </nav>
-                </div>
-
                 {/* Main Content */}
                 <div className="flex-1 p-8">
                     <header className="mb-8">

@@ -20,7 +20,7 @@ export default function AnalyticsDashboard() {
             setError(null);
 
             // Fixed API endpoint URL
-            const response = await fetch(`/api/analysis?dateRange=${dateRange}`);
+            const response = await fetch(`/api/reservation/analysis?dateRange=${dateRange}`);
 
             if (!response.ok) {
                 const errorText = await response.text();
@@ -87,7 +87,7 @@ export default function AnalyticsDashboard() {
         setRefreshing(true);
         setError(null);
         try {
-            const response = await fetch(`/api/analysis?dateRange=${dateRange}`);
+            const response = await fetch(`/api/reservation/analysis?dateRange=${dateRange}`);
 
             if (!response.ok) {
                 const errorText = await response.text();
@@ -149,34 +149,7 @@ export default function AnalyticsDashboard() {
             {/* Sidebar and Main Content */}
             <div className="flex">
                 {/* Sidebar */}
-                <div className="w-64 bg-gray-800 text-white min-h-screen">
-                    <div className="p-4 border-b border-gray-700">
-                        <h1 className="text-xl font-bold">Bike Reservations</h1>
-                        <p className="text-sm text-gray-400">Admin Panel</p>
-                    </div>
-                    <nav className="p-4">
-                        <ul>
-                            <li className="mb-2">
-                                <a href="/Home" className="flex items-center p-2 rounded hover:bg-gray-700">
-                                    <span className="mr-2">📊</span>
-                                    Reservations
-                                </a>
-                            </li>
-                            <li className="mb-2">
-                                <a href="/analysis" className="flex items-center p-2 rounded bg-gray-700">
-                                    <span className="mr-2">📈</span>
-                                    Analytics
-                                </a>
-                            </li>
-                            <li className="mb-2">
-                                <a href="/reports" className="flex items-center p-2 rounded hover:bg-gray-700">
-                                    <span className="mr-2">📄</span>
-                                    Reports
-                                </a>
-                            </li>
-                        </ul>
-                    </nav>
-                </div>
+                
 
                 {/* Main Content */}
                 <div className="flex-1 p-8">

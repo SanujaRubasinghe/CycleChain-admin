@@ -164,7 +164,7 @@ export default function BikeDetail({ params }) {
   return (
     <div className="min-h-screen bg-gray-900 p-4 lg:p-8 relative">
       {/* Offline Modal */}
-      {/* {bike.status === 'offline' && (
+      {bike.status === 'offline' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
           <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full border border-rose-500/40 shadow-lg text-center animate-fade-in">
             <h3 className="text-2xl font-bold text-rose-400 mb-4">Bike Offline</h3>
@@ -179,7 +179,7 @@ export default function BikeDetail({ params }) {
             </button>
           </div>
         </div>
-      )} */}
+      )}
 
       {showMaintenanceModal && (
         <MaintenanceForm 

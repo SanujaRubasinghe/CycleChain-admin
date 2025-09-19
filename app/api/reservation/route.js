@@ -1,7 +1,7 @@
 // app/api/reservations/route.js
 import { NextResponse } from "next/server";
-import dbConnect from "@/app/lib/db";
-import Reservation from "@/app/models/Reservation";
+import dbConnect from "@/lib/mongodb";
+import Reservation from "@/models/Reservation";
 
 export async function GET(request) {
     try {

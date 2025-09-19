@@ -18,7 +18,7 @@ export default function PDFGenerator() {
         const fetchData = async () => {
             setIsLoading(true);
             try {
-                const response = await fetch(`/api/reports?dateRange=${dateRange}&reportType=${reportType}`);
+                const response = await fetch(`/api/reservation/reports?dateRange=${dateRange}&reportType=${reportType}`);
                 const result = await response.json();
 
                 if (result.success) {
@@ -483,36 +483,6 @@ export default function PDFGenerator() {
 
             {/* Sidebar and Main Content */}
             <div className="flex">
-                {/* Sidebar */}
-                <div className="w-64 bg-gray-800 text-white min-h-screen">
-                    <div className="p-4 border-b border-gray-700">
-                        <h1 className="text-xl font-bold">Bike Reservations</h1>
-                        <p className="text-sm text-gray-400">Admin Panel</p>
-                    </div>
-                    <nav className="p-4">
-                        <ul>
-                            <li className="mb-2">
-                                <a href="/Home" className="flex items-center p-2 rounded hover:bg-gray-700">
-                                    <span className="mr-2">📊</span>
-                                    Reservations
-                                </a>
-                            </li>
-                            <li className="mb-2">
-                                <a href="/analysis" className="flex items-center p-2 rounded hover:bg-gray-700">
-                                    <span className="mr-2">📈</span>
-                                    Analytics
-                                </a>
-                            </li>
-                            <li className="mb-2">
-                                <a href="/reports" className="flex items-center p-2 rounded bg-gray-700">
-                                    <span className="mr-2">📄</span>
-                                    PDF Reports
-                                </a>
-                            </li>
-                        </ul>
-                    </nav>
-                </div>
-
                 {/* Main Content */}
                 <div className="flex-1 p-8">
                     <header className="mb-8">

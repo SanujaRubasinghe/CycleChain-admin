@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
-import RentalSession from "@/models/RentalSession";
+import Reservation from "@/models/Reservation";
 
 export async function GET() {
   await dbConnect();
 
-  const sessions = await RentalSession.find({ status: "in_progress" })
+  const sessions = await Reservation.find({ status: "in_progress" })
     .limit(100)
     .sort({ start_time: -1 })
     .lean();

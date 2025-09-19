@@ -1,237 +1,378 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FiChevronRight, FiMapPin, FiBike, FiCheckCircle, FiDownload } from 'react-icons/fi';
+import { FiChevronRight, FiCheckCircle, FiDownload, FiArrowLeft, FiWifi, FiBattery, FiMapPin, FiLock, FiX } from 'react-icons/fi';
+import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 
 export default function AddBikeForm() {
   const [step, setStep] = useState(1);
+  const [availableBikes, setAvailableBikes] = useState([]);
+  const [selectedBike, setSelectedBike] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     type: 'city',
     lat: null,
-    lng: null
+    lng: null,
+    isLocked: null
   });
   const [qrCode, setQrCode] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  const steps = [
-    { id: 1, name: 'Basic Information', status: step > 1 ? 'complete' : 'current' },
-    { id: 2, name: 'Location Setup', status: step === 2 ? 'current' : step > 2 ? 'complete' : 'upcoming' },
-    { id: 3, name: 'Registration Complete', status: step === 3 ? 'current' : 'upcoming' }
-  ];
+  useEffect(() => {
+    const fetchBikes = async () => {
+      try {
+        setIsLoading(true);
+        const res = await fetch('/api/fleet/mqtt/available-bikes');
+        const data = await res.json();
+        setAvailableBikes(data.bikes || []);
+      } catch (err) {
+        console.error('Failed to fetch available bikes', err);
+        toast.error('Could not load available bikes');
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const handleLocationFetch = async () => {
-    toast.loading('Acquiring device location...');
-    try {
-      // In production, this would come from your ESP32 endpoint
-      const mockLocation = {
-        lat: 40.7128 + (Math.random() * 0.01 - 0.005),
-        lng: -74.0060 + (Math.random() * 0.01 - 0.005)
-      };
-      setFormData({ ...formData, ...mockLocation });
-      toast.success('Device location acquired successfully');
-    } catch (error) {
-      toast.error('Failed to connect to device location service');
-    } finally {
-      toast.dismiss();
-    }
+    fetchBikes();
+    const interval = setInterval(fetchBikes, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleSelectBike = (bike) => {
+    setSelectedBike(bike);
+    setFormData({
+      ...formData,
+      name: bike.name || bike.bikeId,
+      type: bike.type || 'city',
+      lat: bike.gps?.lat,
+      lng: bike.gps?.lng,
+      isLocked: Boolean(bike.isLocked)
+    });
   };
 
   const handleSubmit = async () => {
+    if (!selectedBike) return toast.error('Please select a bike first');
+
     try {
-      const res = await fetch('/api/bikes', {
+      const res = await fetch('/api/fleet/bikes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({ ...formData, bikeId: selectedBike.bikeId })
       });
       const newBike = await res.json();
       setQrCode(newBike.qrCode);
       setStep(3);
-      toast.success('Bike successfully added to fleet');
-    } catch (error) {
-      toast.error('Failed to register bike in system');
+      toast.success('Bike successfully registered');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to register bike');
+    }
+  };
+
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        duration: 0.3
+      }
+    }
+  };
+
+  const stepVariants = {
+    enter: { x: 50, opacity: 0 },
+    center: { x: 0, opacity: 1 },
+    exit: { x: -50, opacity: 0 }
+  };
+
+  const modalVariants = {
+    hidden: { opacity: 0, scale: 0.8 },
+    visible: { 
+      opacity: 1, 
+      scale: 1,
+      transition: {
+        duration: 0.3,
+        ease: "easeOut"
+      }
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-sm overflow-hidden">
-      {/* Header */}
-      <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-        <h1 className="text-2xl font-bold text-gray-800">Add New Bike to Fleet</h1>
-        <p className="text-sm text-gray-600 mt-1">Register a new bike in the management system</p>
-      </div>
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
+      <motion.div
+        variants={modalVariants}
+        initial="hidden"
+        animate="visible"
+        className="max-w-2xl w-full bg-gray-900 rounded-xl border border-gray-800 overflow-hidden shadow-2xl"
+      >
+        {/* Modal Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-800">
+          <h2 className="text-xl font-semibold text-white">
+            {step === 1 && 'Add New Bike'}
+            {step === 2 && 'Confirm Bike Details'}
+            {step === 3 && 'Registration Complete'}
+          </h2>
+          <button
+            onClick={() => router.push('/fleet-management/bikes')}
+            className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+          >
+            <FiX className="w-5 h-5" />
+          </button>
+        </div>
 
-      {/* Progress Steps */}
-      <nav className="px-6 py-4 border-b border-gray-200">
-        <ol className="flex items-center">
-          {steps.map((stepItem, index) => (
-            <li key={stepItem.id} className={`relative ${index !== steps.length - 1 ? 'pr-8 sm:pr-20' : ''}`}>
-              <div className="flex items-center">
-                {stepItem.status === 'complete' ? (
-                  <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-green-500 rounded-full">
-                    <FiCheckCircle className="w-5 h-5 text-white" />
+        {/* Progress Indicator */}
+        <div className="px-6 pt-4">
+          <div className="flex justify-center">
+            <div className="flex items-center">
+              {[1, 2, 3].map((stepNumber) => (
+                <div key={stepNumber} className="flex items-center">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                    step >= stepNumber 
+                      ? 'bg-cyan-600 text-white' 
+                      : 'bg-gray-800 text-gray-400 border border-gray-700'
+                  }`}>
+                    {stepNumber}
                   </div>
-                ) : stepItem.status === 'current' ? (
-                  <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center border-2 border-green-500 rounded-full bg-white">
-                    <span className="h-2.5 w-2.5 bg-green-500 rounded-full"></span>
-                  </div>
-                ) : (
-                  <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center border-2 border-gray-300 rounded-full bg-white">
-                    <span className="h-2.5 w-2.5 bg-transparent rounded-full"></span>
-                  </div>
-                )}
-                <span className={`ml-3 text-sm font-medium ${
-                  stepItem.status === 'complete' ? 'text-green-600' :
-                  stepItem.status === 'current' ? 'text-gray-900' : 'text-gray-500'
-                }`}>
-                  {stepItem.name}
-                </span>
-              </div>
-              {index !== steps.length - 1 && (
-                <div className="absolute top-4 right-0 w-6 sm:w-16 h-0.5 bg-gray-200" aria-hidden="true"></div>
-              )}
-            </li>
-          ))}
-        </ol>
-      </nav>
-
-      {/* Form Content */}
-      <div className="p-6">
-        {step === 1 && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Bike Identification</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Bike Name/Identifier*</label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="e.g. NYC-CityBike-001"
-                  />
-                  <p className="mt-1 text-xs text-gray-500">This will be displayed to users and in reports</p>
+                  {stepNumber < 3 && (
+                    <div className={`w-12 h-0.5 mx-2 ${
+                      step > stepNumber ? 'bg-cyan-600' : 'bg-gray-700'
+                    }`} />
+                  )}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Bike Category*</label>
-                  <select
-                    value={formData.type}
-                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  >
-                    <option value="city">City Bike</option>
-                    <option value="mountain">Mountain Bike</option>
-                    <option value="electric">Electric Bike</option>
-                    <option value="premium">Premium Bike</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <button
-                onClick={() => setStep(2)}
-                disabled={!formData.name}
-                className={`px-6 py-2 rounded-lg flex items-center ${
-                  formData.name ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                } transition-colors`}
-              >
-                Continue <FiChevronRight className="ml-2" />
-              </button>
+              ))}
             </div>
           </div>
-        )}
+        </div>
 
-        {step === 2 && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Device Configuration</h2>
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-6">
-                <h3 className="font-medium text-blue-800 mb-2">Device Connection Instructions</h3>
-                <ol className="list-decimal list-inside text-sm text-blue-700 space-y-1">
-                  <li>Ensure the bike's IoT device is powered on</li>
-                  <li>Verify the device is connected to your network</li>
-                  <li>Place the bike in its intended deployment location</li>
-                  <li>Click "Acquire Location" below to register coordinates</li>
-                </ol>
-              </div>
+        <div className="p-6">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={step}
+              variants={stepVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.3 }}
+              className="min-h-[400px]"
+            >
+              {step === 1 && (
+                <div>
+                  <p className="text-gray-400 mb-6 text-center">Select a bike from the available devices</p>
+                  
+                  {isLoading ? (
+                    <div className="text-center py-12">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+                      <p className="text-gray-400">Scanning for available bikes...</p>
+                    </div>
+                  ) : availableBikes.length === 0 ? (
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-center py-12 border border-gray-800 rounded-lg bg-gray-800/50"
+                    >
+                      <FiWifi className="text-4xl text-gray-600 mx-auto mb-4" />
+                      <p className="text-gray-400 mb-2">No bikes detected</p>
+                      <p className="text-sm text-gray-500">Ensure the devices are powered on and connected</p>
+                    </motion.div>
+                  ) : (
+                    <motion.ul
+                      variants={containerVariants}
+                      initial="hidden"
+                      animate="visible"
+                      className="space-y-3 max-h-96 overflow-y-auto pr-2"
+                    >
+                      {availableBikes.map((bike) => (
+                        <motion.li
+                          key={bike.bikeId}
+                          variants={itemVariants}
+                          className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
+                            selectedBike?.bikeId === bike.bikeId 
+                              ? 'border-cyan-500 bg-cyan-500/10' 
+                              : 'border-gray-700 bg-gray-800 hover:border-gray-600'
+                          }`}
+                          onClick={() => handleSelectBike(bike)}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <div className="flex justify-between items-center">
+                            <div className="flex-1">
+                              <div className="flex items-center mb-2">
+                                <h3 className="font-medium text-white">{bike.name || bike.bikeId}</h3>
+                                <span className="ml-3 px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded-full">
+                                  {bike.type}
+                                </span>
+                              </div>
+                              
+                              <div className="flex items-center space-x-4 text-sm text-gray-400">
+                                <div className="flex items-center">
+                                  <FiBattery className="mr-1" />
+                                  <span>{bike.battery}%</span>
+                                </div>
+                                <div className="flex items-center">
+                                  <FiMapPin className="mr-1" />
+                                  <span>{bike.gps?.lat?.toFixed(4)}, {bike.gps?.lng?.toFixed(4)}</span>
+                                </div>
+                                <div className="flex items-center">
+                                  <FiLock className="mr-1" />
+                                  <span>{bike.isLocked ? 'Locked' : 'Unlocked'}</span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {selectedBike?.bikeId === bike.bikeId && (
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="ml-4"
+                              >
+                                <FiCheckCircle className="text-cyan-400 w-6 h-6" />
+                              </motion.div>
+                            )}
+                          </div>
+                        </motion.li>
+                      ))}
+                    </motion.ul>
+                  )}
+                  
+                  <div className="flex justify-end mt-6">
+                    <motion.button
+                      disabled={!selectedBike}
+                      onClick={() => setStep(2)}
+                      whileHover={{ scale: selectedBike ? 1.05 : 1 }}
+                      whileTap={{ scale: selectedBike ? 0.95 : 1 }}
+                      className={`px-6 py-3 rounded-lg flex items-center font-medium ${
+                        selectedBike 
+                          ? 'bg-cyan-600 text-white hover:bg-cyan-500' 
+                          : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      Continue <FiChevronRight className="ml-2" />
+                    </motion.button>
+                  </div>
+                </div>
+              )}
 
-              <div className="space-y-4">
-                <button
-                  onClick={handleLocationFetch}
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center transition-colors"
-                >
-                  <FiMapPin className="mr-2" /> Acquire Device Location
-                </button>
-
-                {formData.lat && (
-                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                    <div className="flex items-center text-green-800">
-                      <FiCheckCircle className="mr-2 flex-shrink-0" />
+              {step === 2 && (
+                <div>
+                  <p className="text-gray-400 mb-6 text-center">Review the details before completing registration</p>
+                  
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-gray-800 p-5 rounded-lg border border-gray-700 mb-6"
+                  >
+                    <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <p className="font-medium">Location successfully registered</p>
-                        <p className="text-sm mt-1 font-mono">Lat: {formData.lat.toFixed(6)}, Lng: {formData.lng.toFixed(6)}</p>
+                        <span className="text-gray-500">Bike ID:</span>
+                        <p className="text-white font-medium">{selectedBike?.bikeId}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Name:</span>
+                        <p className="text-white font-medium">{formData.name}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Type:</span>
+                        <p className="text-white font-medium capitalize">{formData.type}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Status:</span>
+                        <p className="text-white font-medium">
+                          {formData.isLocked ? 'Locked' : 'Unlocked'}
+                        </p>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-gray-500">Location:</span>
+                        <p className="text-white font-medium">
+                          Lat {Number(formData.lat).toFixed(6)}, Lng {Number(formData.lng).toFixed(6)}
+                        </p>
                       </div>
                     </div>
+                  </motion.div>
+                  
+                  <div className="flex justify-between">
+                    <motion.button
+                      onClick={() => setStep(1)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="px-6 py-3 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-800 flex items-center"
+                    >
+                      <FiArrowLeft className="mr-2" /> Back
+                    </motion.button>
+                    <motion.button
+                      onClick={handleSubmit}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-medium"
+                    >
+                      Complete Registration
+                    </motion.button>
                   </div>
-                )}
-              </div>
-            </div>
-            <div className="flex justify-between pt-4">
-              <button
-                onClick={() => setStep(1)}
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Back
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={!formData.lat}
-                className={`px-6 py-2 rounded-lg flex items-center ${
-                  formData.lat ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                } transition-colors`}
-              >
-                Complete Registration <FiChevronRight className="ml-2" />
-              </button>
-            </div>
-          </div>
-        )}
+                </div>
+              )}
 
-        {step === 3 && qrCode && (
-          <div className="text-center">
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
-              <FiCheckCircle className="h-6 w-6 text-green-600" />
-            </div>
-            <h2 className="text-lg font-semibold text-gray-800 mb-2">Bike Successfully Registered</h2>
-            <p className="text-sm text-gray-600 mb-6">
-              The bike has been added to your fleet management system. Download the QR code for deployment.
-            </p>
-            
-            <div className="bg-white p-6 rounded-lg border border-gray-200 inline-block mb-6">
-              <img src={qrCode} alt="Bike QR Code" className="w-48 h-48 mx-auto" />
-              <p className="mt-3 font-medium text-gray-800">{formData.name}</p>
-              <p className="text-xs text-gray-500">ID: {formData.type.toUpperCase()}-{Math.floor(Math.random() * 10000).toString().padStart(4, '0')}</p>
-            </div>
-
-            <div className="flex justify-center space-x-4">
-              <button
-                onClick={() => router.push('/fleet-management/bikes')}
-                className="px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg transition-colors"
-              >
-                Return to Fleet
-              </button>
-              <a
-                href={qrCode}
-                download={`${formData.name.replace(/\s+/g, '-')}-QR.png`}
-                className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center transition-colors"
-              >
-                <FiDownload className="mr-2" /> Download QR
-              </a>
-            </div>
-          </div>
-        )}
-      </div>
+              {step === 3 && qrCode && (
+                <div className="text-center">
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="mx-auto w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mb-6"
+                  >
+                    <FiCheckCircle className="h-8 w-8 text-green-400" />
+                  </motion.div>
+                  
+                  <h3 className="text-lg font-semibold text-white mb-2">Bike Successfully Registered</h3>
+                  <p className="text-gray-400 mb-8">The bike has been added to your fleet</p>
+                  
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="bg-gray-800 p-6 rounded-lg border border-gray-700 inline-block mb-8"
+                  >
+                    <img src={qrCode} alt="Bike QR Code" className="w-48 h-48 mx-auto" />
+                    <p className="mt-4 font-medium text-white">{formData.name}</p>
+                    <p className="text-sm text-gray-400">{selectedBike?.bikeId}</p>
+                  </motion.div>
+                  
+                  <div className="flex justify-center space-x-4">
+                    <motion.button
+                      onClick={() => router.push('/fleet-management/bikes')}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg"
+                    >
+                      Return to Fleet
+                    </motion.button>
+                    <motion.a
+                      href={qrCode}
+                      download={`${formData.name.replace(/\s+/g, '-')}-QR.png`}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg flex items-center"
+                    >
+                      <FiDownload className="mr-2" /> Download QR
+                    </motion.a>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </motion.div>
     </div>
   );
 }

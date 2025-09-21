@@ -7,6 +7,11 @@ import User from "@/models/User";
 export const authOptions = {
   providers: [
     CredentialsProvider({
+      name: "Credentials",
+      credentials: {
+        email: { label: "Email", type: "text" },
+        password: { label: "Password", type: "password" },
+      },
       async authorize(credentials) {
         await dbConnect();
         const user = await User.findOne({ email: credentials.email });
@@ -38,13 +43,13 @@ export const authOptions = {
       return session;
     },
     async redirect({ url, baseUrl }) {
+      // Always redirect only if necessary
       if (url.startsWith(baseUrl)) return url;
-      if (url.startsWith("/")) return baseUrl + url;
-      return baseUrl + "/dashboard";
+      return "/dashboard"; 
     },
   },
   pages: {
-    signIn: "/auth/login",
+    signIn: "/auth/login", 
   },
 };
 

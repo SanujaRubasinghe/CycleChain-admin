@@ -4,11 +4,13 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 
 const cards = [
-  { href: "/store", title: "Manage Store", desc: "Add, edit, or delete items" },
-  { href: "/users", title: "Manage Users", desc: "View and remove user profiles" },
+  { href: "/fleet-management/dashboard", title: "Manage Fleet", desc: "View and manage bike fleet" },
+  { href: "/user-management/analytics", title: "Manage Users", desc: "View and remove user profiles" },
+  { href: "/reservation-management", title: "Manage Reservations", desc: "View and manage reservations" },
+  { href: "/payment-management", title: "Manage Payments", desc: "View and manage payments" },
+  { href: "/feedback-management", title: "Manage Feedback", desc: "View and respond to user feedback" },
+  { href: "/store-management", title: "Manage Store", desc: "Add, edit, or delete items" },
   { href: "/profile", title: "Admin Profile", desc: "Edit your account or logout" },
-  { href: "/analytics", title: "Analytics", desc: "User stats, rides & sales" },
-  { href: "/reports", title: "Reports", desc: "Generate and export reports" },
 ];
 
 export default function AdminDashboard() {

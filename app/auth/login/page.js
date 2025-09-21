@@ -1,24 +1,29 @@
 "use client";
 
-import { signIn } from "next-auth/react";
 import { useState } from "react";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
+  const router = useRouter();
 
   const submit = async (e) => {
     e.preventDefault();
     setErr("");
+
     const res = await signIn("credentials", {
       email,
       password,
-      redirect: true,
-      callbackUrl: "/dashboard", 
+      redirect: false, 
     });
+
     if (res?.error) {
-      setErr("Login failed: " + res.error);
+      setErr(res.error);
+    } else {
+      router.push("/dashboard"); 
     }
   };
 

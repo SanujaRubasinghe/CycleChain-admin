@@ -5,10 +5,10 @@ import Link from "next/link";
 
 export default function AdminRegisterPage() {
   const [username, setUsername] = useState("");
-  const [email, setEmail]     = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
-  const [err, setErr]   = useState("");
+  const [err, setErr] = useState("");
   const [saving, setSaving] = useState(false);
 
   const submit = async (e) => {
@@ -24,8 +24,6 @@ export default function AdminRegisterPage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || "Failed to register admin");
 
-      // success: go to /login (change to dashboard if you auto-login)
-      window.location.href = "/login";
     } catch (e) {
       setErr(e.message || "Failed to register admin");
     } finally {
@@ -34,20 +32,25 @@ export default function AdminRegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-surface grid place-items-center px-4">
-      <div className="w-full max-w-md bg-surface border border-border rounded-2xl shadow-xl p-8">
-        <h1 className="text-2xl font-semibold text-center text-white">Admin Register</h1>
-        <p className="text-subtext text-center mt-1">
+    <div className="min-h-screen bg-gray-900 grid place-items-center px-4">
+      <div className="w-full max-w-md bg-gray-800 border border-gray-700 rounded-2xl shadow-xl p-8">
+        <h1 className="text-2xl font-semibold text-center text-white">
+          Admin Register
+        </h1>
+        <p className="text-gray-400 text-center mt-1">
           Create an administrator account for the Cycle Chain dashboard.
         </p>
 
-        {err && <div className="mt-4 text-red-400 text-center">{err}</div>}
+        {err && (
+          <div className="mt-4 text-red-400 text-center font-medium">{err}</div>
+        )}
 
-        <form onSubmit={submit} className="mt-6 space-y-4">
+        <form onSubmit={submit} className="mt-6 space-y-6">
+          {/* Username */}
           <div>
-            <label className="label">Username</label>
+            <label className="block mb-1 text-gray-300 font-medium">Username</label>
             <input
-              className="input"
+              className="w-full px-4 py-2 rounded-lg bg-gray-700 border border-gray-600 text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="e.g. admin01"
@@ -55,11 +58,12 @@ export default function AdminRegisterPage() {
             />
           </div>
 
+          {/* Email */}
           <div>
-            <label className="label">Email</label>
+            <label className="block mb-1 text-gray-300 font-medium">Email</label>
             <input
               type="email"
-              className="input"
+              className="w-full px-4 py-2 rounded-lg bg-gray-700 border border-gray-600 text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@company.com"
@@ -67,12 +71,13 @@ export default function AdminRegisterPage() {
             />
           </div>
 
+          {/* Password */}
           <div>
-            <label className="label">Password</label>
+            <label className="block mb-1 text-gray-300 font-medium">Password</label>
             <div className="flex gap-2">
               <input
                 type={show ? "text" : "password"}
-                className="input flex-1"
+                className="flex-1 px-4 py-2 rounded-lg bg-gray-700 border border-gray-600 text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••"
@@ -81,23 +86,24 @@ export default function AdminRegisterPage() {
               />
               <button
                 type="button"
-                className="btn-ghost text-sm"
+                className="px-3 py-2 bg-gray-700 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-600 hover:text-white transition text-sm font-medium"
                 onClick={() => setShow((s) => !s)}
               >
                 {show ? "Hide" : "Show"}
               </button>
             </div>
-            <p className="text-xs text-subtext mt-1">Minimum 6 characters.</p>
+            <p className="text-xs text-gray-400 mt-1">Minimum 6 characters.</p>
           </div>
 
-          <button className="btn-primary w-full" disabled={saving}>
+          {/* Submit */}
+          <button
+            type="submit"
+            className="w-full py-3 bg-green-600 hover:bg-green-700 rounded-lg text-white font-semibold transition shadow-md hover:shadow-lg"
+            disabled={saving}
+          >
             {saving ? "Creating…" : "Create admin account"}
           </button>
         </form>
-
-        <p className="text-sm text-subtext mt-6 text-center">
-          Already an admin? <Link href="/login" className="text-primary hover:underline">Sign in</Link>
-        </p>
       </div>
     </div>
   );

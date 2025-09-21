@@ -1,55 +1,55 @@
 'use client'
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { FiArrowRight } from 'react-icons/fi';
+
+import { useSession, signIn } from 'next-auth/react';
+import { useEffect } from 'react';
 
 
-export default function Home() {
+export default function AdminDashboard() {
+
+  const { data: session, status } = useSession();
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      signIn()
+    }
+  }, [status])
+
+  if (status === 'loading') {
+    return <p className="p-4 text-center">Checking authentication...</p>
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="max-w-2xl mx-auto text-center px-4">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-8"
-        >
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Fleet Management <span className="text-green-600">Dashboard</span>
-          </h1>
-          <p className="text-lg text-gray-600">
-            Efficiently manage your bike fleet with real-time tracking, analytics, and maintenance scheduling.
-          </p>
-        </motion.div>
+    <div className="min-h-screen bg-gradient-to-br from-background to-surface">
+      <div className="container mx-auto px-6 py-10">
+        <h1 className="text-3xl font-bold text-white mb-8">Admin Dashboard</h1>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <Link
-            href="/fleet-management"
-            className="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
-          >
-            Go to Dashboard
-            <FiArrowRight className="ml-2" />
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <Link href="/store" className="card p-6 hover:bg-surface/70">
+            <h2 className="text-xl font-semibold text-white">Manage Store</h2>
+            <p className="text-subtext">Add, edit, or delete items</p>
           </Link>
-        </motion.div>
+          <Link href="/users" className="card p-6 hover:bg-surface/70">
+            <h2 className="text-xl font-semibold text-white">Manage Users</h2>
+            <p className="text-subtext">View and remove user profiles</p>
+          </Link>
+          <Link href="/profile" className="card p-6 hover:bg-surface/70">
+            <h2 className="text-xl font-semibold text-white">Admin Profile</h2>
+            <p className="text-subtext">Edit your account or logout</p>
+          </Link>
+          <Link href="/analytics" className="card p-6 hover:bg-surface/70">
+            <h2 className="text-xl font-semibold text-white">Analytics</h2>
+            <p className="text-subtext">User stats, rides & sales</p>
+          </Link>
+          <Link href="/reports" className="card p-6 hover:bg-surface/70">
+            <h2 className="text-xl font-semibold text-white">Reports</h2>
+            <p className="text-subtext">Generate and export reports</p>
+          </Link>
+        </div>
       </div>
     </div>
   );
 }
 
-// export default function Home() {
-//   return (
-//     <main style={{ padding: 16 }}>
-//       <h1>CycleChain</h1>
-//       <ul>
-//         <li><a href="/dashboard">Dashboard</a></li>
-//         <li><a href="/bikes">Bikes</a></li>
-//         <li><a href="/analytics">Analytics</a></li>
-//         <li><a href="/settings">Settings</a></li>
-//       </ul>
-//     </main>
-//   );
+
 

@@ -1,7 +1,6 @@
-// admin/app/api/auth/register/route.js
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { connectToDB } from "@/lib/db";
+import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 
 export async function POST(req) {
@@ -21,7 +20,7 @@ export async function POST(req) {
       );
     }
 
-    await connectToDB();
+    await dbConnect();
 
     const existing = await User.findOne({ email: email.toLowerCase() });
     if (existing) {

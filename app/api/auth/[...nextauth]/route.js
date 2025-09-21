@@ -1,14 +1,14 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { connectToDB } from "@/lib/db";
+import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 
 export const authOptions = {
   providers: [
     CredentialsProvider({
       async authorize(credentials) {
-        await connectToDB();
+        await dbConnect();
         const user = await User.findOne({ email: credentials.email });
         if (!user) throw new Error("No user found");
 
@@ -38,13 +38,13 @@ export const authOptions = {
       return session;
     },
     async redirect({ url, baseUrl }) {
-      // ✅ force admins to /dashboard
-      if (url.startsWith("/dashboard")) return url;
-      return baseUrl + (url.includes("admin") ? "/dashboard" : "/");
+      if (url.startsWith(baseUrl)) return url;
+      if (url.startsWith("/")) return baseUrl + url;
+      return baseUrl + "/dashboard";
     },
   },
   pages: {
-    signIn: "/login", // ✅ because your admin login is at /login
+    signIn: "/auth/login",
   },
 };
 

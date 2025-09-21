@@ -19,7 +19,7 @@ export async function GET(request) {
   ]);
 
   const userIds = agg.map(a => a._id);
-  const users = await User.find({ _id: { $in: userIds } }).lean();
+  const users = await User.find({ username: { $in: userIds } }).lean();
   const usersMap = users.reduce((acc, u) => { acc[u._id] = u; return acc; }, {});
 
   const result = agg.map(a => ({ user_id: a._id, count: a.count, user: usersMap[a._id] || null }));

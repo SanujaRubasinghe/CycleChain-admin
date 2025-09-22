@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import dbConnect from "@/lib/mongodb";
+import { connectToDB } from "@/lib/db";
 import Product from "@/models/Product";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
@@ -38,9 +38,8 @@ function forbid() {
 
 /** GET /api/products/[id] */
 export async function GET(_req, { params }) {
-  await dbConnect();
-  const {id} = await params
-  const p = await Product.findById(id).lean();
+  await connectToDB();
+  const p = await Product.findById(params.id).lean();
   if (!p) return NextResponse.json({ message: "Not found" }, { status: 404 });
   return NextResponse.json(p);
 }
@@ -50,7 +49,7 @@ export async function PATCH(req, { params }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.role || session.user.role !== "admin") return forbid();
 
-  await dbConnect();
+  await connectToDB();
 
   const product = await Product.findById(params.id);
   if (!product) return NextResponse.json({ message: "Not found" }, { status: 404 });
@@ -65,6 +64,7 @@ export async function PATCH(req, { params }) {
 
   if (title) {
     product.title = String(title);
+    // re-generate unique slug if title changed
     let base = slugify(product.title);
     if (!base) base = crypto.randomBytes(4).toString("hex");
     let slug = base;
@@ -102,7 +102,7 @@ export async function DELETE(_req, { params }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.role || session.user.role !== "admin") return forbid();
 
-  await dbConnect();
+  await connectToDB();
 
   const p = await Product.findByIdAndDelete(params.id);
   if (!p) return NextResponse.json({ message: "Not found" }, { status: 404 });

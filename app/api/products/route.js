@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import dbConnect from "@/lib/mongodb";
+import { connectToDB } from "@/lib/db";
 import Product from "@/models/Product";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
@@ -37,7 +37,7 @@ function forbid() {
 }
 
 export async function GET() {
-  await dbConnect();
+  await connectToDB();
   const docs = await Product.find().sort({ createdAt: -1 }).lean();
   return NextResponse.json(docs);
 }
@@ -46,7 +46,7 @@ export async function POST(req) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.role || session.user.role !== "admin") return forbid();
 
-  await dbConnect();
+  await connectToDB();
 
   const form = await req.formData();
   const title = form.get("title");

@@ -4,8 +4,7 @@ import { usePathname } from 'next/navigation';
 import {
   FiMessageSquare, FiTool, FiHome, FiPieChart, FiSettings,
   FiUsers, FiCreditCard, FiCalendar, FiChevronDown,
-  FiChevronRight, FiDownload, FiMenu,
-  FiShoppingBag
+  FiChevronRight, FiDownload, FiMenu
 } from 'react-icons/fi';
 import { LuBike } from 'react-icons/lu';
 import { useState } from 'react';
@@ -76,16 +75,6 @@ export default function Sidebar() {
         { href: '/reservation-management', icon: <FiHome />, label: 'Reservations' },
         { href: '/reservation-management/analysis', icon: <FiPieChart />, label: 'Analytics' },
         { href: '/reservation-management/reports', icon: <FiDownload />, label: 'Reports' },
-      ],
-    },
-    {
-      id: 'storeManagement',
-      title: 'Store',
-      icon: <FiShoppingBag className="text-lg" />,
-      items: [
-        { href: '/store-management', icon: <FiHome />, label: 'Overview' },
-        // { href: '/reservation-management/analysis', icon: <FiPieChart />, label: 'Analytics' },
-        // { href: '/reservation-management/reports', icon: <FiDownload />, label: 'Reports' },
       ],
     },
   ];

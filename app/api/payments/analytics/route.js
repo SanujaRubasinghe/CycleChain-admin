@@ -1,6 +1,6 @@
 // app/api/payment/analytics/route.js
 import { NextResponse } from "next/server";
-import dbConnect from "@/lib/dbConnect";
+import dbConnect from "@/lib/mongodb";
 import Payment from "@/models/Payment";
 
 export async function GET() {

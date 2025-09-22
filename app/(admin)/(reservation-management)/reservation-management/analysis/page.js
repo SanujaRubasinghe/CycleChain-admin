@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  PieChart, Pie, Cell, AreaChart, Area, LineChart, Line
+} from 'recharts';
 
 export default function AnalyticsDashboard() {
     const [dateRange, setDateRange] = useState('30d');
@@ -12,7 +16,7 @@ export default function AnalyticsDashboard() {
 
     useEffect(() => {
         fetchData();
-    }, [dateRange]); // Add dateRange as dependency
+    }, [dateRange]);
 
     const fetchData = async () => {
         try {
@@ -111,6 +115,14 @@ export default function AnalyticsDashboard() {
 
     const data = analyticsData || getFallbackData();
 
+    // Prepare data for Recharts
+    const statusDistributionData = Object.entries(data.statusDistribution || {}).map(([name, value]) => ({
+        name: name.replace('_', ' '),
+        value
+    }));
+
+    const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -146,254 +158,254 @@ export default function AnalyticsDashboard() {
                 <meta name="description" content="Reservation management analytics dashboard" />
             </Head>
 
-            {/* Sidebar and Main Content */}
-            <div className="flex">
-                {/* Sidebar */}
-                
+            {/* Main Content */}
+            <div className="flex-1 p-8">
+                <header className="mb-8">
+                    <h1 className="text-2xl font-bold text-white">Reservation Analytics</h1>
+                    <p className="text-gray-400">Track and analyze your reservation performance</p>
 
-                {/* Main Content */}
-                <div className="flex-1 p-8">
-                    <header className="mb-8">
-                        <h1 className="text-2xl font-bold text-white">Reservation Analytics</h1>
-                        <p className="text-gray-400">Track and analyze your reservation performance</p>
-
-                        {error && (
-                            <div className="mt-4 p-3 bg-yellow-900/30 border border-yellow-700 rounded-md">
-                                <p className="text-yellow-400">Warning: {error}. Showing fallback data.</p>
-                            </div>
-                        )}
-                    </header>
-
-                    {/* Date Range Selector and Refresh Button */}
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
-                        <div className="flex items-center space-x-4">
-                            <select
-                                className="px-4 py-2 bg-gray-800 border border-gray-700 text-white rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                                value={dateRange}
-                                onChange={(e) => setDateRange(e.target.value)}
-                            >
-                                <option value="7d">Last 7 days</option>
-                                <option value="30d">Last 30 days</option>
-                                <option value="90d">Last 90 days</option>
-                                <option value="ytd">Year to Date</option>
-                                <option value="12m">Last 12 months</option>
-                            </select>
-                            <button
-                                onClick={refreshData}
-                                disabled={refreshing}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                            >
-                                {refreshing ? 'Refreshing...' : 'Refresh Data'}
-                            </button>
+                    {error && (
+                        <div className="mt-4 p-3 bg-yellow-900/30 border border-yellow-700 rounded-md">
+                            <p className="text-yellow-400">Warning: {error}. Showing fallback data.</p>
                         </div>
+                    )}
+                </header>
+
+                {/* Date Range Selector and Refresh Button */}
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+                    <div className="flex items-center space-x-4">
+                        <select
+                            className="px-4 py-2 bg-gray-800 border border-gray-700 text-white rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            value={dateRange}
+                            onChange={(e) => setDateRange(e.target.value)}
+                        >
+                            <option value="7d">Last 7 days</option>
+                            <option value="30d">Last 30 days</option>
+                            <option value="90d">Last 90 days</option>
+                            <option value="ytd">Year to Date</option>
+                            <option value="12m">Last 12 months</option>
+                        </select>
+                        <button
+                            onClick={refreshData}
+                            disabled={refreshing}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                        >
+                            {refreshing ? 'Refreshing...' : 'Refresh Data'}
+                        </button>
                     </div>
+                </div>
 
-                    {/* KPI Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-                        {/* In Progress */}
-                        <div className="bg-gray-800 rounded-lg shadow p-6">
-                            <div className="flex items-center">
-                                <div className="p-3 rounded-full bg-blue-900/30 text-blue-400">
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                </div>
-                                <div className="ml-4">
-                                    <p className="text-sm font-medium text-gray-400">In Progress</p>
-                                    <p className="text-2xl font-bold text-white">{data.statusCounts.in_progress}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Completed */}
-                        <div className="bg-gray-800 rounded-lg shadow p-6">
-                            <div className="flex items-center">
-                                <div className="p-3 rounded-full bg-green-900/30 text-green-400">
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                </div>
-                                <div className="ml-4">
-                                    <p className="text-sm font-medium text-gray-400">Completed</p>
-                                    <p className="text-2xl font-bold text-white">{data.statusCounts.completed}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Cancelled */}
-                        <div className="bg-gray-800 rounded-lg shadow p-6">
-                            <div className="flex items-center">
-                                <div className="p-3 rounded-full bg-red-900/30 text-red-400">
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </div>
-                                <div className="ml-4">
-                                    <p className="text-sm font-medium text-gray-400">Cancelled</p>
-                                    <p className="text-2xl font-bold text-white">{data.statusCounts.cancelled}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Active (sum of in_progress and reserved) */}
-                        <div className="bg-gray-800 rounded-lg shadow p-6">
-                            <div className="flex items-center">
-                                <div className="p-3 rounded-full bg-purple-900/30 text-purple-400">
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                    </svg>
-                                </div>
-                                <div className="ml-4">
-                                    <p className="text-sm font-medium text-gray-400">Active</p>
-                                    <p className="text-2xl font-bold text-white">
-                                        {data.statusCounts.in_progress + data.statusCounts.reserved}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Reserved */}
-                        <div className="bg-gray-800 rounded-lg shadow p-6">
-                            <div className="flex items-center">
-                                <div className="p-3 rounded-full bg-yellow-900/30 text-yellow-400">
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                                    </svg>
-                                </div>
-                                <div className="ml-4">
-                                    <p className="text-sm font-medium text-gray-400">Reserved</p>
-                                    <p className="text-2xl font-bold text-white">{data.statusCounts.reserved}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-gray-800 rounded-lg shadow p-6 mb-8">
-                        <h2 className="text-lg font-semibold text-white mb-4">Reservation Status Distribution</h2>
-                        <div className="h-64 flex items-end space-x-4 justify-around">
-                            {Object.entries(data.statusDistribution).map(([status, count], index) => {
-                                const maxValue = Math.max(...Object.values(data.statusDistribution));
-                                const heightPercentage = (count / maxValue) * 100;
-
-                                return (
-                                    <div key={index} className="flex flex-col items-center flex-1">
-                                        <div
-                                            className="w-full bg-blue-500 rounded-t hover:bg-blue-600 transition-colors"
-                                            style={{ height: `${heightPercentage}%` }}
-                                            title={`${count} ${status}`}
-                                        ></div>
-                                        <span className="text-xs text-gray-400 mt-2 capitalize">{status.replace('_', ' ')}</span>
-                                        <span className="text-xs text-gray-500 mt-1">{count}</span>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                        <div className="bg-gray-800 rounded-lg shadow p-6">
-                            <h2 className="text-lg font-semibold text-white mb-4">Revenue Trend</h2>
-                            <div className="h-64 flex items-end space-x-4 justify-around">
-                                {data.monthlyTrend.map((month, index) => {
-                                    const maxRevenue = Math.max(...data.monthlyTrend.map(m => m.revenue));
-                                    const heightPercentage = (month.revenue / maxRevenue) * 100;
-
-                                    return (
-                                        <div key={index} className="flex flex-col items-center flex-1">
-                                            <div
-                                                className="w-full bg-blue-500 rounded-t hover:bg-blue-600 transition-colors"
-                                                style={{ height: `${heightPercentage}%` }}
-                                                title={`$${month.revenue}`}
-                                            ></div>
-                                            <span className="text-xs text-gray-400 mt-2">{month.month}</span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        <div className="bg-gray-800 rounded-lg shadow p-6">
-                            <h2 className="text-lg font-semibold text-white mb-4">Daily Bookings</h2>
-                            <div className="h-64 flex items-end space-x-4 justify-around">
-                                {data.dailyBookings.map((day, index) => {
-                                    const maxBookings = Math.max(...data.dailyBookings.map(d => d.bookings));
-                                    const heightPercentage = (day.bookings / maxBookings) * 100;
-
-                                    return (
-                                        <div key={index} className="flex flex-col items-center flex-1">
-                                            <div
-                                                className="w-full bg-green-500 rounded-t hover:bg-green-600 transition-colors"
-                                                style={{ height: `${heightPercentage}%` }}
-                                                title={`${day.bookings} bookings`}
-                                            ></div>
-                                            <span className="text-xs text-gray-400 mt-2">{day.day}</span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Additional Metrics */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                        <div className="bg-gray-800 rounded-lg shadow p-6">
-                            <h2 className="text-lg font-semibold text-white mb-4">Revenue</h2>
-                            <div className="flex items-end justify-center">
-                                <p className="text-3xl font-bold text-white">${data.revenue.toLocaleString()}</p>
-                                <span className="ml-2 text-sm text-green-400">+12.4%</span>
-                            </div>
-                            <p className="text-sm text-gray-400 text-center mt-2">from previous period</p>
-                        </div>
-
-                        <div className="bg-gray-800 rounded-lg shadow p-6">
-                            <h2 className="text-lg font-semibold text-white mb-4">Average Booking Value</h2>
-                            <div className="flex items-end justify-center">
-                                <p className="text-3xl font-bold text-white">${data.averageBookingValue}</p>
-                                <span className="ml-2 text-sm text-green-400">+3.2%</span>
-                            </div>
-                            <p className="text-sm text-gray-400 text-center mt-2">from previous period</p>
-                        </div>
-
-                        <div className="bg-gray-800 rounded-lg shadow p-6">
-                            <h2 className="text-lg font-semibold text-white mb-4">Occupancy Rate</h2>
-                            <div className="flex items-end justify-center">
-                                <p className="text-3xl font-bold text-white">{data.occupancyRate}%</p>
-                                <span className="ml-2 text-sm text-green-400">+5.7%</span>
-                            </div>
-                            <p className="text-sm text-gray-400 text-center mt-2">from previous period</p>
-                        </div>
-                    </div>
-
-                    {/* Reservation Sources */}
+                {/* KPI Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+                    {/* In Progress */}
                     <div className="bg-gray-800 rounded-lg shadow p-6">
-                        <h2 className="text-lg font-semibold text-white mb-4">Reservation Sources</h2>
-                        <div className="flex flex-col md:flex-row items-center justify-center">
-                            <div className="relative w-48 h-48 mb-4 md:mb-0 md:mr-8">
-                                {/* Simple pie chart simulation */}
-                                <div className="absolute inset-0 rounded-full border-8 border-blue-500"></div>
-                                <div className="absolute inset-0 rounded-full border-8 border-green-500" style={{ clipPath: 'inset(0 0 0 50%)' }}></div>
-                                <div className="absolute inset-0 rounded-full border-8 border-yellow-500" style={{ clipPath: 'polygon(50% 0%, 50% 50%, 100% 50%, 100% 0%)' }}></div>
-                                <div className="absolute inset-0 rounded-full border-8 border-red-500" style={{ clipPath: 'polygon(50% 50%, 50% 100%, 0% 100%, 0% 50%)' }}></div>
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <div className="text-center">
-                                        <p className="text-xl font-bold text-white">Total</p>
-                                        <p className="text-gray-400">{data.totalReservations}</p>
-                                    </div>
+                        <div className="flex items-center">
+                            <div className="p-3 rounded-full bg-blue-900/30 text-blue-400">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div className="ml-4">
+                                <p className="text-sm font-medium text-gray-400">In Progress</p>
+                                <p className="text-2xl font-bold text-white">{data.statusCounts.in_progress}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Completed */}
+                    <div className="bg-gray-800 rounded-lg shadow p-6">
+                        <div className="flex items-center">
+                            <div className="p-3 rounded-full bg-green-900/30 text-green-400">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div className="ml-4">
+                                <p className="text-sm font-medium text-gray-400">Completed</p>
+                                <p className="text-2xl font-bold text-white">{data.statusCounts.completed}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Cancelled */}
+                    <div className="bg-gray-800 rounded-lg shadow p-6">
+                        <div className="flex items-center">
+                            <div className="p-3 rounded-full bg-red-900/30 text-red-400">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </div>
+                            <div className="ml-4">
+                                <p className="text-sm font-medium text-gray-400">Cancelled</p>
+                                <p className="text-2xl font-bold text-white">{data.statusCounts.cancelled}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Active (sum of in_progress and reserved) */}
+                    <div className="bg-gray-800 rounded-lg shadow p-6">
+                        <div className="flex items-center">
+                            <div className="p-3 rounded-full bg-purple-900/30 text-purple-400">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                            </div>
+                            <div className="ml-4">
+                                <p className="text-sm font-medium text-gray-400">Active</p>
+                                <p className="text-2xl font-bold text-white">
+                                    {data.statusCounts.in_progress + data.statusCounts.reserved}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Reserved */}
+                    <div className="bg-gray-800 rounded-lg shadow p-6">
+                        <div className="flex items-center">
+                            <div className="p-3 rounded-full bg-yellow-900/30 text-yellow-400">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                                </svg>
+                            </div>
+                            <div className="ml-4">
+                                <p className="text-sm font-medium text-gray-400">Reserved</p>
+                                <p className="text-2xl font-bold text-white">{data.statusCounts.reserved}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Status Distribution Chart */}
+                <div className="bg-gray-800 rounded-lg shadow p-6 mb-8">
+                    <h2 className="text-lg font-semibold text-white mb-4">Reservation Status Distribution</h2>
+                    <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                                data={statusDistributionData}
+                                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                            >
+                                <CartesianGrid strokeDasharray="3 3" stroke="#4B5563" />
+                                <XAxis dataKey="name" stroke="#9CA3AF" />
+                                <YAxis stroke="#9CA3AF" />
+                                <Tooltip 
+                                    contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: 'white' }}
+                                    itemStyle={{ color: 'white' }}
+                                />
+                                <Legend />
+                                <Bar dataKey="value" fill="#3B82F6" name="Count" />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                {/* Revenue and Daily Bookings Charts */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div className="bg-gray-800 rounded-lg shadow p-6">
+                        <h2 className="text-lg font-semibold text-white mb-4">Revenue Trend</h2>
+                        <div className="h-64">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart
+                                    data={data.monthlyTrend}
+                                    margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                                >
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#4B5563" />
+                                    <XAxis dataKey="month" stroke="#9CA3AF" />
+                                    <YAxis stroke="#9CA3AF" />
+                                    <Tooltip 
+                                        contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: 'white' }}
+                                    />
+                                    <Area type="monotone" dataKey="revenue" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.3} name="Revenue" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    <div className="bg-gray-800 rounded-lg shadow p-6">
+                        <h2 className="text-lg font-semibold text-white mb-4">Daily Bookings</h2>
+                        <div className="h-64">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart
+                                    data={data.dailyBookings}
+                                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                                >
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#4B5563" />
+                                    <XAxis dataKey="day" stroke="#9CA3AF" />
+                                    <YAxis stroke="#9CA3AF" />
+                                    <Tooltip 
+                                        contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: 'white' }}
+                                    />
+                                    <Line type="monotone" dataKey="bookings" stroke="#10B981" activeDot={{ r: 8 }} name="Bookings" />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Additional Metrics */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    <div className="bg-gray-800 rounded-lg shadow p-6">
+                        <h2 className="text-lg font-semibold text-white mb-4">Revenue</h2>
+                        <div className="flex items-end justify-center">
+                            <p className="text-3xl font-bold text-white">LKR {data.revenue.toLocaleString()}</p>
+                            <span className="ml-2 text-sm text-green-400">+12.4%</span>
+                        </div>
+                        <p className="text-sm text-gray-400 text-center mt-2">from previous period</p>
+                    </div>
+
+                    <div className="bg-gray-800 rounded-lg shadow p-6">
+                        <h2 className="text-lg font-semibold text-white mb-4">Average Booking Value</h2>
+                        <div className="flex items-end justify-center">
+                            <p className="text-3xl font-bold text-white">LKR {data.averageBookingValue}</p>
+                            <span className="ml-2 text-sm text-green-400">+3.2%</span>
+                        </div>
+                        <p className="text-sm text-gray-400 text-center mt-2">from previous period</p>
+                    </div>
+
+                    <div className="bg-gray-800 rounded-lg shadow p-6">
+                        <h2 className="text-lg font-semibold text-white mb-4">Occupancy Rate</h2>
+                        <div className="flex items-end justify-center">
+                            <p className="text-3xl font-bold text-white">{data.occupancyRate}%</p>
+                            <span className="ml-2 text-sm text-green-400">+5.7%</span>
+                        </div>
+                        <p className="text-sm text-gray-400 text-center mt-2">from previous period</p>
+                    </div>
+                </div>
+
+                {/* Reservation Sources */}
+                <div className="bg-gray-800 rounded-lg shadow p-6">
+                    <h2 className="text-lg font-semibold text-white mb-4">Reservation Sources</h2>
+                    <div className="flex flex-col md:flex-row items-center justify-center">
+                        <div className="w-48 h-48 mb-4 md:mb-0 md:mr-8">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={data.reservationSources}
+                                        cx="50%"
+                                        cy="50%"
+                                        labelLine={false}
+                                        outerRadius={80}
+                                        fill="#8884d8"
+                                        dataKey="value"
+                                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                                    >
+                                        {data.reservationSources.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip 
+                                        contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151', color: 'white' }}
+                                    />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <div className="grid grid-cols-1 gap-2">
+                            {data.reservationSources.map((source, index) => (
+                                <div key={index} className="flex items-center">
+                                    <div className={`w-3 h-3 rounded-full mr-2`} style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
+                                    <span className="text-sm text-gray-400">{source.name}</span>
+                                    <span className="ml-auto text-sm font-medium text-white">{source.value}%</span>
                                 </div>
-                            </div>
-                            <div className="grid grid-cols-1 gap-2">
-                                {data.reservationSources.map((source, index) => (
-                                    <div key={index} className="flex items-center">
-                                        <div className={`w-3 h-3 rounded-full mr-2 ${
-                                            index === 0 ? 'bg-blue-500' :
-                                                index === 1 ? 'bg-green-500' :
-                                                    index === 2 ? 'bg-yellow-500' : 'bg-red-500'
-                                        }`}></div>
-                                        <span className="text-sm text-gray-400">{source.name}</span>
-                                        <span className="ml-auto text-sm font-medium text-white">{source.value}%</span>
-                                    </div>
-                                ))}
-                            </div>
+                            ))}
                         </div>
                     </div>
                 </div>

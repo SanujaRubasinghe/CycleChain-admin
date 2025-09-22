@@ -7,7 +7,16 @@ import User from "@/models/User";
 export const authOptions = {
   providers: [
     CredentialsProvider({
+      name: "Credentials",
+      credentials: {
+        email: { label: "Email", type: "text", placeholder: "example@email.com" },
+        password: { label: "Password", type: "password" },
+      },
       async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("Email and password are required");
+        }
+
         await dbConnect();
         const user = await User.findOne({ email: credentials.email });
         if (!user) throw new Error("No user found");
@@ -27,13 +36,16 @@ export const authOptions = {
   session: { strategy: "jwt" },
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.role = user.role;
+      if (user) {
+        token.role = user.role;
+        token.id = user.id;
+      }
       return token;
     },
     async session({ session, token }) {
       if (token) {
         session.user.role = token.role;
-        session.user.id = token.sub;
+        session.user.id = token.id;
       }
       return session;
     },
@@ -46,6 +58,7 @@ export const authOptions = {
   pages: {
     signIn: "/auth/login",
   },
+  secret: process.env.NEXTAUTH_SECRET,
 };
 
 const handler = NextAuth(authOptions);

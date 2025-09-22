@@ -50,7 +50,7 @@ function calculateAnalytics(reservations, startDate, endDate) {
     // Calculate status counts in the format expected by frontend
     const statusCounts = {
         in_progress: reservations.filter(r => r.status === 'in_progress').length,
-        completed: reservations.filter(r => r.status === 'completed').length,
+        completed: reservations.filter(r => r.status === 'completed-paid').length,
         cancelled: reservations.filter(r => r.status === 'cancelled').length,
         reserved: reservations.filter(r => r.status === 'reserved').length
     };
@@ -58,7 +58,7 @@ function calculateAnalytics(reservations, startDate, endDate) {
     const statusDistribution = { ...statusCounts }; // Copy for distribution
 
     const revenue = reservations
-        .filter(r => r.status === 'completed')
+        .filter(r => r.status === 'completed-paid')
         .reduce((sum, r) => sum + (r.cost || 0), 0);
 
     const averageBookingValue = statusCounts.completed > 0
@@ -76,6 +76,8 @@ function calculateAnalytics(reservations, startDate, endDate) {
         { name: 'Hybrid Bike', count: Math.floor(totalReservations * 0.2) },
         { name: 'Electric Bike', count: Math.floor(totalReservations * 0.1) },
     ];
+
+    console.log(statusDistribution)
 
     return {
         totalReservations,
@@ -98,7 +100,7 @@ function calculateAnalytics(reservations, startDate, endDate) {
 
 function calculateOccupancyRate(reservations) {
     // Simple occupancy rate calculation
-    const completed = reservations.filter(r => r.status === 'completed').length;
+    const completed = reservations.filter(r => r.status === 'completed-paid').length;
     const total = reservations.length;
     return total > 0 ? Math.round((completed / total) * 100) : 0;
 }
@@ -118,7 +120,7 @@ function generateMonthlyTrend(reservations, startDate, endDate) {
         });
 
         const monthRevenue = monthReservations
-            .filter(r => r.status === 'completed')
+            .filter(r => r.status === 'completed-paid')
             .reduce((sum, r) => sum + (r.cost || 0), 0);
 
         months.push({

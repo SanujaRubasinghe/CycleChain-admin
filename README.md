@@ -31,7 +31,7 @@ Designed with efficiency and security in mind, it empowers administrators and te
 
 - **Frontend**: Next.js + Tailwind CSS
 - **Backend**: Node.js + Express
-- **Database**: MySQL
+- **Database**: Mongoose
 - **Communication**: MQTT/HTTPS for IoT integration
 - **Authentication**: JWT-based secure login with role management
 

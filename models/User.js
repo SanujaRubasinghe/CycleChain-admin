@@ -29,6 +29,13 @@ const UserSchema = new mongoose.Schema(
       enum: ["user", "admin"],
       default: "user",
     },
+    nic: {
+      type: String,
+      required: false,
+      trim: true,
+      minlength: 5,
+      maxlength: 20,
+    },
     walletAddress: { type: String, default: "" },
   },
   { timestamps: true }

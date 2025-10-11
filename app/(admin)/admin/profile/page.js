@@ -3,19 +3,26 @@
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useSession } from "next-auth/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function AdminProfile() {
   const router = useRouter();
-  const {data: session} = useSession();
+  const {data: session, status} = useSession();
   const [isEditing, setIsEditing] = useState(false);
-  const [username, setUsername] = useState(session?.user?.username || "");
+  const [username, setUsername] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  // Initialize username when session loads
+  useEffect(() => {
+    if (session?.user?.username) {
+      setUsername(session.user.username);
+    }
+  }, [session]);
 
   const logout = async () => {
     await signOut({ callbackUrl: "/auth/login" });
@@ -58,7 +65,8 @@ export default function AdminProfile() {
       setMessage("Profile updated successfully!");
       setIsEditing(false);
       // Refresh session to get updated data
-      window.location.reload();
+      const { update } = await import("next-auth/react");
+      await update();
     } catch (err) {
       setError(err.message || "Update failed");
     } finally {
@@ -95,6 +103,19 @@ export default function AdminProfile() {
     }
   };
 
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-6">
+        <div className="w-full max-w-md bg-gray-800 border border-gray-700 rounded-2xl shadow-xl p-8">
+          <div className="text-center text-white">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p>Loading profile...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-6">
       <div className="w-full max-w-md bg-gray-800 border border-gray-700 rounded-2xl shadow-xl p-8">
@@ -116,7 +137,12 @@ export default function AdminProfile() {
           <>
             {/* Admin Details */}
             <div className="mb-6 space-y-2">
-              <p className="text-gray-300"><span className="font-medium">Username:</span> {session?.user?.username || "Not set"}</p>
+              <p className="text-gray-300">
+                <span className="font-medium">Username:</span> 
+                <span className={session?.user?.username ? "text-white" : "text-yellow-400"}>
+                  {session?.user?.username || "Not set - Click Edit Profile to set"}
+                </span>
+              </p>
               <p className="text-gray-300"><span className="font-medium">Email:</span> {session?.user?.email}</p>
               <p className="text-gray-300"><span className="font-medium">Role:</span> Admin</p>
             </div>
@@ -152,6 +178,7 @@ export default function AdminProfile() {
                 className="w-full px-4 py-2 rounded-lg bg-gray-700 border border-gray-600 text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter your username"
                 required
               />
             </div>

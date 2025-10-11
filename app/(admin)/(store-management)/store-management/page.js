@@ -25,7 +25,7 @@ function ProductCard({ product, onDelete }) {
         <div className="text-green-400 font-medium mt-1">LKR {product.price}</div>
         <div className="mt-auto flex gap-2">
           <Link
-            href={`/store-management/${product._id}/edit`}
+            href={`/store/${product._id}/edit`}
             className="flex-1 py-2 text-center border border-gray-600 rounded-lg text-gray-200 hover:bg-gray-700 transition"
           >
             Edit
@@ -89,7 +89,7 @@ export default function AdminStorePage() {
         <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
           <h1 className="text-3xl font-bold text-white">Store Inventory</h1>
           <Link
-            href="/store-management/new"
+            href="/store/new"
             className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition"
           >
             Add Item

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Bike from "@/models/Bike";
-import RequestEvent from "@/models/RequestEvent";
+import Reservation from "@/models/Reservation";
 import { cellId, cellCenter } from "@/lib/grid";
 import { parseTimeRange, decayedWeight } from "@/lib/heatmapUtils";
 
@@ -10,14 +10,14 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const { start, end, tauHours } = parseTimeRange(searchParams);
 
-  const reqs = await RequestEvent.find(
+  const reqs = await Reservation.find(
     { createdAt: { $gte: start, $lte: end } },
-    { location: 1, createdAt: 1, _id: 0 }
+    { start_location: 1, createdAt: 1, _id: 0 }
   ).lean();
 
   const demand = new Map();
   for (const e of reqs) {
-    const id = cellId(e.location.lat, e.location.lng);
+    const id = cellId(e.start_location.lat, e.start_location.lng);
     const w = decayedWeight(new Date(e.createdAt), end, tauHours, 1);
     demand.set(id, (demand.get(id) || 0) + w);
   }
@@ -26,7 +26,7 @@ export async function GET(req) {
   const bikes = await Bike.find(
     {
       status: "available",
-      // lastSeenAt: { $gte: freshSince },
+      lastSeenAt: { $gte: freshSince },
     },
     { currentLocation: 1, _id: 0 }
   ).lean();

@@ -3,10 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 
-export default function AdminRegisterPage() {
+export default function RegisterPage() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [nic, setNic] = useState("");
   const [show, setShow] = useState(false);
   const [err, setErr] = useState("");
   const [saving, setSaving] = useState(false);
@@ -19,11 +20,13 @@ export default function AdminRegisterPage() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, email, password }),
+        body: JSON.stringify({ username, email, password, nic }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || "Failed to register admin");
 
+      // Redirect to login page after successful registration
+      window.location.href = "/auth/login?message=Registration successful. Please log in.";
     } catch (e) {
       setErr(e.message || "Failed to register admin");
     } finally {
@@ -71,6 +74,18 @@ export default function AdminRegisterPage() {
             />
           </div>
 
+          {/* NIC */}
+          <div>
+            <label className="block mb-1 text-gray-300 font-medium">NIC</label>
+            <input
+              className="w-full px-4 py-2 rounded-lg bg-gray-700 border border-gray-600 text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
+              value={nic}
+              onChange={(e) => setNic(e.target.value)}
+              placeholder="e.g. 200012345678"
+              required
+            />
+          </div>
+
           {/* Password */}
           <div>
             <label className="block mb-1 text-gray-300 font-medium">Password</label>
@@ -104,6 +119,9 @@ export default function AdminRegisterPage() {
             {saving ? "Creating…" : "Create admin account"}
           </button>
         </form>
+        <div className="mt-6 text-center text-gray-400">
+          Already have an account? <Link href="/auth/login" className="text-green-400 hover:text-green-300 font-medium">Log in</Link>
+        </div>
       </div>
     </div>
   );

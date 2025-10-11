@@ -42,12 +42,12 @@ const formatDateForQuery = (date) => {
 // Helper function to calculate analytics from reservations
 function calculateAnalytics(reservations, startDate, endDate) {
     const totalReservations = reservations.length;
-    const completedReservations = reservations.filter(r => r.status === 'completed').length;
+    const completedReservations = reservations.filter(r => r.status === 'completed-paid').length;
     const pendingReservations = reservations.filter(r => r.status === 'pending' || r.status === 'reserved').length;
     const cancelledReservations = reservations.filter(r => r.status === 'cancelled').length;
 
     const revenue = reservations
-        .filter(r => r.status === 'completed')
+        .filter(r => r.status === 'completed-paid')
         .reduce((sum, r) => sum + (r.cost || 0), 0);
 
     const averageBookingValue = completedReservations > 0
@@ -87,7 +87,7 @@ function calculateAnalytics(reservations, startDate, endDate) {
 
 function calculateOccupancyRate(reservations) {
     // Simple occupancy rate calculation
-    const completed = reservations.filter(r => r.status === 'completed').length;
+    const completed = reservations.filter(r => r.status === 'completed-paid').length;
     const total = reservations.length;
     return total > 0 ? Math.round((completed / total) * 100) : 0;
 }
@@ -106,7 +106,7 @@ function generateMonthlyTrend(reservations, startDate, endDate) {
         });
 
         const monthRevenue = monthReservations
-            .filter(r => r.status === 'completed')
+            .filter(r => r.status === 'completed-paid')
             .reduce((sum, r) => sum + (r.cost || 0), 0);
 
         months.push({

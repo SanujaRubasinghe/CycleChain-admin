@@ -264,7 +264,7 @@ export default function PDFGenerator() {
             </div>
             <div class="print-card">
               <p>Revenue</p>
-              <p>$${analyticsData.revenue.toLocaleString()}</p>
+              <p>LKR ${analyticsData.revenue.toLocaleString()}</p>
             </div>
             <div class="print-card">
               <p>Occupancy Rate</p>
@@ -368,9 +368,9 @@ export default function PDFGenerator() {
                 ${analyticsData.monthlyTrend.map((month, index) => `
                   <tr>
                     <td>${month.month}</td>
-                    <td>$${month.revenue.toLocaleString()}</td>
+                    <td>LKR ${month.revenue.toLocaleString()}</td>
                     <td>${month.bookings}</td>
-                    <td>$${Math.round(month.revenue / month.bookings)}</td>
+                    <td>LKR ${Math.round(Number(month.revenue) / Number(month.bookings))}</td>
                   </tr>
                 `).join('')}
               </tbody>

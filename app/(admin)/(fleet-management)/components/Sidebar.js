@@ -54,19 +54,15 @@ export default function Sidebar() {
       icon: <FiUsers className="text-lg" />,
       items: [
         { href: '/user-management/analytics', icon: <FiUsers />, label: 'Users Overview' },
-        // { href: '/user-management/roles', icon: <FiSettings />, label: 'Roles & Permissions' },
-        // { href: '/user-management/activity', icon: <FiPieChart />, label: 'User Activity' },
+        { href: '/user-management/roles', icon: <FiSettings />, label: 'Roles & Permissions' },
+        { href: '/user-management/activity', icon: <FiPieChart />, label: 'User Activity' },
       ],
     },
     {
       id: 'paymentManagement',
       title: 'Payment',
       icon: <FiCreditCard className="text-lg" />,
-      items: [
-        { href: '/payment-management', icon: <FiHome />, label: 'Transactions' },
-        { href: '/payment-management/invoices', icon: <FiCreditCard />, label: 'Invoices' },
-        { href: '/payment-management/subscriptions', icon: <FiCalendar />, label: 'Subscriptions' },
-      ],
+      href: '/payment-management',
     },
     {
       id: 'reservationManagement',
@@ -90,10 +86,14 @@ export default function Sidebar() {
     },
   ];
 
-  const isSectionActive = (section) =>
-    section.items.some(
+  const isSectionActive = (section) => {
+    if (section.href) {
+      return pathname === section.href || pathname.startsWith(section.href + '/');
+    }
+    return section.items?.some(
       (item) => pathname === item.href || pathname.startsWith(item.href + '/')
     );
+  };
 
   return (
     <aside
@@ -126,42 +126,63 @@ export default function Sidebar() {
 
             return (
               <li key={section.id}>
-                <button
-                  onClick={() => toggleSection(section.id)}
-                  className={`flex items-center justify-between w-full px-3 py-3 rounded-lg transition-all duration-200
-                    ${
-                      isActive
-                        ? 'bg-cyan-500/10 text-cyan-400'
-                        : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
-                    }`}
-                >
-                  <div className="flex items-center">
-                    <span className="mr-3">{section.icon}</span>
-                    {!collapsed && <span className="font-medium">{section.title}</span>}
-                  </div>
-                  {!collapsed &&
-                    (isOpen ? <FiChevronDown className="text-sm" /> : <FiChevronRight className="text-sm" />)}
-                </button>
+                {section.href ? (
+                  // Direct link (no submenu)
+                  <Link
+                    href={section.href}
+                    className={`flex items-center justify-between w-full px-3 py-3 rounded-lg transition-all duration-200
+                      ${
+                        isActive
+                          ? 'bg-cyan-500/10 text-cyan-400'
+                          : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+                      }`}
+                  >
+                    <div className="flex items-center">
+                      <span className="mr-3">{section.icon}</span>
+                      {!collapsed && <span className="font-medium">{section.title}</span>}
+                    </div>
+                  </Link>
+                ) : (
+                  // Section with submenu
+                  <>
+                    <button
+                      onClick={() => toggleSection(section.id)}
+                      className={`flex items-center justify-between w-full px-3 py-3 rounded-lg transition-all duration-200
+                        ${
+                          isActive
+                            ? 'bg-cyan-500/10 text-cyan-400'
+                            : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+                        }`}
+                    >
+                      <div className="flex items-center">
+                        <span className="mr-3">{section.icon}</span>
+                        {!collapsed && <span className="font-medium">{section.title}</span>}
+                      </div>
+                      {!collapsed &&
+                        (isOpen ? <FiChevronDown className="text-sm" /> : <FiChevronRight className="text-sm" />)}
+                    </button>
 
-                {/* Submenu */}
-                {isOpen && !collapsed && (
-                  <ul className="ml-6 mt-2 space-y-1 border-l border-gray-700 pl-3">
-                    {section.items.map((item) => (
-                      <li key={item.href}>
-                        <Link
-                          href={item.href}
-                          className={`flex items-center px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
-                            pathname === item.href
-                              ? 'bg-cyan-500/10 text-cyan-400 border-l-2 border-cyan-400'
-                              : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
-                          }`}
-                        >
-                          <span className="mr-3 text-base">{item.icon}</span>
-                          <span>{item.label}</span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
+                    {/* Submenu */}
+                    {isOpen && !collapsed && (
+                      <ul className="ml-6 mt-2 space-y-1 border-l border-gray-700 pl-3">
+                        {section.items.map((item) => (
+                          <li key={item.href}>
+                            <Link
+                              href={item.href}
+                              className={`flex items-center px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+                                pathname === item.href
+                                  ? 'bg-cyan-500/10 text-cyan-400 border-l-2 border-cyan-400'
+                                  : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+                              }`}
+                            >
+                              <span className="mr-3 text-base">{item.icon}</span>
+                              <span>{item.label}</span>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </>
                 )}
               </li>
             );

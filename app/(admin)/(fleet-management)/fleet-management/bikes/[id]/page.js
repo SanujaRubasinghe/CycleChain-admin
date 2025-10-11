@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { FiLock, FiUnlock, FiMapPin, FiBattery, FiCalendar, FiArrowLeft, FiDownload, FiExternalLink, FiTrash2 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import html2canvas from 'html2canvas';
-import MaintenanceForm from '@/app/(fleet-management)/components/MaintenanceForm';
+import MaintenanceForm from '../../../components/MaintenanceForm';
 
 export default function BikeDetail({ params }) {
   const [bike, setBike] = useState(null);

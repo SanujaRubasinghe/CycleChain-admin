@@ -99,7 +99,10 @@ export default function AnalyticsPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `monthly_report.pdf`;
+      // Generate filename with current date
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+      a.download = `CycleChain_Monthly_Report_${dateStr}.pdf`;
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (err) {

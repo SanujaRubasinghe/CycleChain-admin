@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import MaintenanceRecord from "@/models/MaintenanceRecord";
+import Technician from "@/models/Technician";
 
 export async function GET(request) {
     try {

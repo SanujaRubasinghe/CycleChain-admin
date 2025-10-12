@@ -105,7 +105,10 @@ export default function Sidebar() {
       <div className="flex items-center justify-between px-4 py-4 border-b border-gray-800">
         {!collapsed && (
           <div>
-            <h1 className="text-lg font-bold text-cyan-400">CycleChain</h1>
+            <Link href="/dashboard" className="flex flex-col">
+              <span className="text-lg font-bold text-cyan-400">CycleChain</span>
+            </Link>
+            {/* <h1 className="text-lg font-bold text-cyan-400">CycleChain</h1> */}
             <p className="text-xs text-gray-500">Management Portal</p>
           </div>
         )}

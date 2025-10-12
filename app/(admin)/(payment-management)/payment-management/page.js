@@ -1,13 +1,33 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area } from "recharts";
 import { FiDownload } from "react-icons/fi";
 
 export default function PaymentDashboard() {
   const [data, setData] = useState({ weeklyTotal: 0, monthlyTotal: 0, daily: [] });
   const [period, setPeriod] = useState("monthly"); // 'weekly' or 'monthly'
   const [isDownloading, setIsDownloading] = useState(false);
+  const [distributionData, setDistributionData] = useState({
+    methodDistribution: [],
+    statusDistribution: [],
+    recentTrends: [],
+    currencyDistribution: []
+  });
+  const [cryptoPortfolio, setCryptoPortfolio] = useState({
+    portfolio: {
+      totalEthValue: 0,
+      totalLkrValue: 0,
+      recentEthValue: 0,
+      recentLkrValue: 0,
+      growthPercentage: 0,
+      ethPrice: 0,
+      lkrToEthRate: 0
+    },
+    chartData: [],
+    recentPayments: [],
+    lastUpdated: null
+  });
 
   useEffect(() => {
     fetch(`/api/payments/analytics?period=${period}`)
@@ -15,6 +35,28 @@ export default function PaymentDashboard() {
       .then(setData)
       .catch((err) => console.error(err));
   }, [period]);
+
+  useEffect(() => {
+    fetch('/api/payments/distribution')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setDistributionData(data);
+        }
+      })
+      .catch((err) => console.error('Error fetching distribution data:', err));
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/crypto/portfolio')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setCryptoPortfolio(data);
+        }
+      })
+      .catch((err) => console.error('Error fetching crypto portfolio:', err));
+  }, []);
 
   const handleDownloadPDF = async () => {
     setIsDownloading(true);
@@ -347,6 +389,367 @@ export default function PaymentDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Payment Distribution Charts */}
+      <div className="mt-8">
+        <h2 className="text-xl font-bold text-gray-100 mb-6">Payment Distribution</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+          {/* Payment Methods Distribution */}
+          <Card className="shadow-xl bg-gray-900 border border-gray-800">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold text-gray-200 mb-4">Payment Methods</h3>
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={distributionData.methodDistribution.map(item => ({
+                      name: item._id.charAt(0).toUpperCase() + item._id.slice(1),
+                      value: item.count,
+                      amount: item.totalAmount
+                    }))}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {distributionData.methodDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={[
+                        '#10b981', // emerald
+                        '#3b82f6', // blue
+                        '#f59e0b'  // amber
+                      ][index % 3]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#1f2937",
+                      border: "1px solid #374151",
+                      borderRadius: "0.5rem",
+                      color: "#f9fafb",
+                    }}
+                    formatter={(value, name, props) => [
+                      `${value} payments (LKR ${props.payload.amount?.toLocaleString() || 0})`,
+                      name
+                    ]}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Payment Status Distribution */}
+          <Card className="shadow-xl bg-gray-900 border border-gray-800">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold text-gray-200 mb-4">Payment Status</h3>
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={distributionData.statusDistribution.map(item => ({
+                      name: item._id.charAt(0).toUpperCase() + item._id.slice(1),
+                      value: item.count,
+                      amount: item.totalAmount
+                    }))}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {distributionData.statusDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={[
+                        '#10b981', // emerald - completed
+                        '#f59e0b', // amber - pending
+                        '#ef4444'  // red - failed
+                      ][index % 3]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#1f2937",
+                      border: "1px solid #374151",
+                      borderRadius: "0.5rem",
+                      color: "#f9fafb",
+                    }}
+                    formatter={(value, name, props) => [
+                      `${value} payments (LKR ${props.payload.amount?.toLocaleString() || 0})`,
+                      name
+                    ]}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Recent Payment Trends by Method */}
+          <Card className="shadow-xl bg-gray-900 border border-gray-800">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold text-gray-200 mb-4">Recent Trends by Method</h3>
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={distributionData.recentTrends}>
+                  <XAxis
+                    dataKey="_id"
+                    stroke="#9ca3af"
+                    tick={{ fill: "#9ca3af", fontSize: 10 }}
+                    axisLine={{ stroke: "#4b5563" }}
+                  />
+                  <YAxis
+                    stroke="#9ca3af"
+                    tick={{ fill: "#9ca3af", fontSize: 10 }}
+                    axisLine={{ stroke: "#4b5563" }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#1f2937",
+                      border: "1px solid #374151",
+                      borderRadius: "0.5rem",
+                      color: "#f9fafb",
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="crypto"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    name="Crypto"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="card"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    name="Card"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="qr"
+                    stroke="#f59e0b"
+                    strokeWidth={2}
+                    name="QR"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+        </div>
+
+        {/* Currency Distribution */}
+        {distributionData.currencyDistribution.length > 1 && (
+          <div className="mt-6">
+            <Card className="shadow-xl bg-gray-900 border border-gray-800">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold text-gray-200 mb-4">Currency Distribution</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {distributionData.currencyDistribution.map((currency, index) => (
+                    <div key={currency._id} className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                      <div className="text-2xl font-bold text-blue-400">{currency._id}</div>
+                      <div className="text-sm text-gray-400 mt-1">
+                        {currency.count} payments • LKR {currency.totalAmount.toLocaleString()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
+
+      {/* Crypto Portfolio Section */}
+      {cryptoPortfolio.portfolio.totalEthValue > 0 && (
+        <div className="mt-8">
+          <h2 className="text-xl font-bold text-gray-100 mb-6 flex items-center gap-2">
+            <span className="text-orange-400">₿</span> Crypto Portfolio (ETH)
+          </h2>
+
+          {/* Portfolio Overview Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+            <Card className="shadow-xl bg-gray-900 border border-gray-800">
+              <CardContent className="p-6">
+                <h3 className="text-sm uppercase tracking-wide text-gray-400">Total ETH Value</h3>
+                <p className="text-3xl font-bold text-orange-400 mt-2">
+                  {cryptoPortfolio.portfolio.totalEthValue.toFixed(4)} ETH
+                </p>
+                <p className="text-sm text-gray-400 mt-1">
+                  LKR {cryptoPortfolio.portfolio.totalLkrValue.toLocaleString()}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-xl bg-gray-900 border border-gray-800">
+              <CardContent className="p-6">
+                <h3 className="text-sm uppercase tracking-wide text-gray-400">ETH Price</h3>
+                <p className="text-3xl font-bold text-green-400 mt-2">
+                  LKR {cryptoPortfolio.portfolio.ethPrice.toLocaleString()}
+                </p>
+                <p className="text-sm text-gray-400 mt-1">
+                  1 ETH = LKR {cryptoPortfolio.portfolio.ethPrice.toLocaleString()}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-xl bg-gray-900 border border-gray-800">
+              <CardContent className="p-6">
+                <h3 className="text-sm uppercase tracking-wide text-gray-400">30-Day Growth</h3>
+                <p className={`text-3xl font-bold mt-2 ${
+                  cryptoPortfolio.portfolio.growthPercentage >= 0 ? 'text-green-400' : 'text-red-400'
+                }`}>
+                  {cryptoPortfolio.portfolio.growthPercentage >= 0 ? '+' : ''}
+                  {cryptoPortfolio.portfolio.growthPercentage.toFixed(2)}%
+                </p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Recent: {cryptoPortfolio.portfolio.recentEthValue.toFixed(4)} ETH
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-xl bg-gray-900 border border-gray-800">
+              <CardContent className="p-6">
+                <h3 className="text-sm uppercase tracking-wide text-gray-400">Total Transactions</h3>
+                <p className="text-3xl font-bold text-blue-400 mt-2">
+                  {cryptoPortfolio.recentPayments.length}
+                </p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Last 30 days
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Crypto Portfolio Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            {/* ETH Value Over Time */}
+            <Card className="shadow-xl bg-gray-900 border border-gray-800">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold text-gray-200 mb-4">ETH Accumulation Over Time</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={cryptoPortfolio.chartData}>
+                    <XAxis
+                      dataKey="date"
+                      stroke="#9ca3af"
+                      tick={{ fill: "#9ca3af", fontSize: 12 }}
+                      axisLine={{ stroke: "#4b5563" }}
+                    />
+                    <YAxis
+                      stroke="#9ca3af"
+                      tick={{ fill: "#9ca3af", fontSize: 12 }}
+                      axisLine={{ stroke: "#4b5563" }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#1f2937",
+                        border: "1px solid #374151",
+                        borderRadius: "0.5rem",
+                        color: "#f9fafb",
+                      }}
+                      formatter={(value) => [`${Number(value).toFixed(4)} ETH`, 'Accumulated Value']}
+                      labelFormatter={(label) => `Date: ${label}`}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="ethAmount"
+                      stroke="#f59e0b"
+                      fill="#f59e0b"
+                      fillOpacity={0.3}
+                      strokeWidth={2}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Recent ETH Transactions */}
+            <Card className="shadow-xl bg-gray-900 border border-gray-800">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold text-gray-200 mb-4">Recent ETH Transactions</h3>
+                <div className="space-y-3 max-h-80 overflow-y-auto">
+                  {cryptoPortfolio.recentPayments.map((payment, index) => (
+                    <div key={payment.id} className="flex items-center justify-between p-3 bg-gray-800 rounded-lg border border-gray-700">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                          ₿
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-200">
+                            {payment.ethAmount.toFixed(4)} ETH
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {new Date(payment.date).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm text-gray-300">
+                          LKR {payment.amount.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {payment.transactionId ? payment.transactionId.slice(-8) : 'N/A'}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {cryptoPortfolio.recentPayments.length === 0 && (
+                    <div className="text-center text-gray-400 py-8">
+                      No recent ETH transactions
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+          </div>
+
+          {/* Portfolio Performance Summary */}
+          <div className="mt-6">
+            <Card className="shadow-xl bg-gray-900 border border-gray-800">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold text-gray-200 mb-4">Portfolio Performance Summary</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-orange-400 mb-2">
+                      {cryptoPortfolio.portfolio.totalEthValue.toFixed(4)} ETH
+                    </div>
+                    <div className="text-sm text-gray-400">Total Portfolio Value</div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      ≈ LKR {cryptoPortfolio.portfolio.totalLkrValue.toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold mb-2 ${
+                      cryptoPortfolio.portfolio.growthPercentage >= 0 ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {cryptoPortfolio.portfolio.growthPercentage >= 0 ? '+' : ''}
+                      {cryptoPortfolio.portfolio.growthPercentage.toFixed(2)}%
+                    </div>
+                    <div className="text-sm text-gray-400">30-Day Growth</div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Portfolio performance
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-400 mb-2">
+                      {cryptoPortfolio.portfolio.recentEthValue.toFixed(4)} ETH
+                    </div>
+                    <div className="text-sm text-gray-400">Recent Accumulation</div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Last 30 days
+                    </div>
+                  </div>
+                </div>
+                {cryptoPortfolio.lastUpdated && (
+                  <div className="text-xs text-gray-500 text-center mt-4">
+                    Last updated: {new Date(cryptoPortfolio.lastUpdated).toLocaleString()}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

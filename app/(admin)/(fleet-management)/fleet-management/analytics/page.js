@@ -101,7 +101,7 @@ export default function AnalyticsPage() {
       a.href = url;
       // Generate filename with current date
       const now = new Date();
-      const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+      const dateStr = now.toISOString().split('T')[0]; 
       a.download = `CycleChain_Monthly_Report_${dateStr}.pdf`;
       a.click();
       window.URL.revokeObjectURL(url);

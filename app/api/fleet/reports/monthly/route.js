@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
-import PDFDocument from "pdfkit";
+import { jsPDF } from "jspdf";
 import RentalSession from "@/models/RentalSession";
 import Payment from "@/models/Payment";
 import MaintenanceRecord from "@/models/MaintenanceRecord";
-import path from "path";
-import fs from "fs";
 
 const MONGO_URI = process.env.MONGODB_URI;
 
@@ -90,362 +88,126 @@ export async function GET() {
     .sort((a, b) => b.totalRentals - a.totalRentals)
     .slice(0, 10); // Top 10 locations
 
-  // create PDF with buffered pages so we can add page numbers at the end
-  const doc = new PDFDocument({
-    size: "A4",
-    margin: 60,
-    bufferPages: true,
-    font: "./public/fonts/Roboto-Regular.ttf"
+  // create simple PDF with jsPDF
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
   });
 
-  // Helper to resolve public assets
-  const publicPath = (p) => path.join(process.cwd(), "public", p);
+  let y = 20; // starting y position
 
-  // Register fonts if available, otherwise PDFKit falls back to Helvetica
-  const fonts = {
-    regular: publicPath("fonts/Roboto-Regular.ttf"),
-    medium: publicPath("fonts/Roboto-Medium.ttf"),
-    bold: publicPath("fonts/Roboto-Bold.ttf"),
-  };
-  if (fs.existsSync(fonts.regular)) doc.registerFont("Roboto-Regular", fonts.regular);
-  if (fs.existsSync(fonts.medium)) doc.registerFont("Roboto-Medium", fonts.medium);
-  if (fs.existsSync(fonts.bold)) doc.registerFont("Roboto-Bold", fonts.bold);
+  // Title
+  doc.setFontSize(18);
+  doc.text("CycleChain Monthly Fleet Analytics Report", 105, y, { align: "center" });
+  y += 10;
+  doc.setFontSize(12);
+  doc.text(`Report Period: ${startOfMonth.toLocaleDateString()} - ${endOfMonth.toLocaleDateString()}`, 105, y, { align: "center" });
+  y += 5;
+  doc.text(`Generated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`, 105, y, { align: "center" });
+  y += 15;
 
-  // Color scheme
-  const colors = {
-    primary: "#06B6D4", // cyan-500
-    primaryLight: "#67E8F9", // cyan-300
-    primaryDark: "#0891B2", // cyan-600
-    secondary: "#3B82F6", // blue-500
-    accent: "#10B981", // emerald-500
-    text: "#1F2937", // gray-800
-    textLight: "#6B7280", // gray-500
-    textMuted: "#9CA3AF", // gray-400
-    background: "#FFFFFF",
-    backgroundLight: "#F9FAFB", // gray-50
-    border: "#E5E7EB", // gray-200
-  };
+  // Summary
+  doc.setFontSize(14);
+  doc.text("Executive Summary", 20, y);
+  y += 10;
 
-  // Stream buffers
-  const buffers = [];
-  const pdfBuffer = await new Promise((resolve, reject) => {
-    doc.on("data", (chunk) => buffers.push(chunk));
-    doc.on("end", () => resolve(Buffer.concat(buffers)));
-    doc.on("error", reject);
+  const summaryData = [
+    { label: "Rental Sessions", value: sessions.length },
+    { label: "Total Revenue", value: `LKR ${totalRevenue.toFixed(2)}` },
+    { label: "Maintenance Issues", value: maintenance.length },
+    { label: "Popular Locations", value: locationArray.length },
+  ];
 
-    // ---------------- COVER PAGE ----------------
-    // Modern cover design with gradient background
-    const logoPath = publicPath("logo.png");
-    if (fs.existsSync(logoPath)) {
-      // center the logo with shadow effect
-      const logoWidth = 140;
-      const logoX = doc.page.width / 2 - logoWidth / 2;
-      const logoY = 150;
+  doc.setFontSize(10);
+  summaryData.forEach((item) => {
+    doc.text(`${item.label}: ${item.value}`, 20, y);
+    y += 5;
+  });
+  y += 10;
 
-      // Add subtle background gradient
-      doc.rect(0, 0, doc.page.width, doc.page.height).fill(colors.primary + "10");
-
-      // Logo container with shadow
-      doc.circle(logoX + logoWidth/2, logoY + 70, logoWidth/2 + 5).fill(colors.primary + "20");
-      doc.image(logoPath, logoX, logoY, { width: logoWidth });
-    } else {
-      // Fallback gradient background
-      doc.rect(0, 0, doc.page.width, doc.page.height).fill(colors.primary + "10");
+  // Tables
+  function drawTable(title, headers, rows) {
+    if (y > 250) { // if near bottom, add page
+      doc.addPage();
+      y = 20;
     }
+    doc.setFontSize(12);
+    doc.text(title, 20, y);
+    y += 8;
 
-    // Modern title design with gradient text effect
-    const titleY = 350;
-    doc
-      .font(fs.existsSync(fonts.bold) ? "Roboto-Bold" : "Helvetica-Bold")
-      .fontSize(42)
-      .fillColor(colors.primary)
-      .text("CycleChain", doc.page.width / 2 - 120, titleY, { align: "center", lineGap: 8 });
-
-    // Subtitle with modern styling
-    doc
-      .font(fs.existsSync(fonts.medium) ? "Roboto-Medium" : "Helvetica")
-      .fontSize(20)
-      .fillColor(colors.textLight)
-      .text("Monthly Performance Report", { align: "center" });
-
-    // Decorative line
-    const lineY = titleY + 120;
-    doc
-      .moveTo(doc.page.width / 2 - 100, lineY)
-      .lineTo(doc.page.width / 2 + 100, lineY)
-      .lineWidth(3)
-      .stroke(colors.primary);
-
-    // Report period in modern card style
-    const periodY = lineY + 40;
-    const periodWidth = 300;
-    const periodHeight = 50;
-    const periodX = doc.page.width / 2 - periodWidth / 2;
-
-    // Card background
-    doc
-      .roundedRect(periodX, periodY, periodWidth, periodHeight, 8)
-      .fill(colors.background);
-
-    // Card border
-    doc
-      .roundedRect(periodX, periodY, periodWidth, periodHeight, 8)
-      .stroke(colors.border);
-
-    // Period text
-    doc
-      .font(fs.existsSync(fonts.medium) ? "Roboto-Medium" : "Helvetica")
-      .fontSize(14)
-      .fillColor(colors.text)
-      .text(`Report Period: ${startOfMonth.toLocaleDateString()} - ${endOfMonth.toLocaleDateString()}`,
-           periodX + 20, periodY + 18, { width: periodWidth - 40, align: "center" });
-
-    // Generated date
-    doc
-      .font(fs.existsSync(fonts.regular) ? "Roboto-Regular" : "Helvetica")
-      .fontSize(10)
-      .fillColor(colors.textMuted)
-      .text(`Generated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`,
-           0, periodY + periodHeight + 20, { align: "center" });
-
-    // move to next page (summary)
-    doc.addPage();
-
-    // ---------------- SUMMARY PAGE ----------------
-    // Add page background
-    doc.rect(0, 0, doc.page.width, doc.page.height).fill(colors.background);
-
-    // Page header with modern design
-    const headerHeight = 80;
-    doc
-      .rect(0, 0, doc.page.width, headerHeight)
-      .fill(colors.primary);
-
-    doc
-      .font(fs.existsSync(fonts.bold) ? "Roboto-Bold" : "Helvetica-Bold")
-      .fontSize(24)
-      .fillColor(colors.background)
-      .text("Executive Summary", 60, 30);
-
-    doc.moveDown(2);
-
-    const summaryData = [
-      { label: "Rental Sessions", value: sessions.length, icon: "🚲", color: colors.primary },
-      { label: "Total Revenue", value: `$${totalRevenue.toFixed(2)}`, icon: "💰", color: colors.accent },
-      { label: "Maintenance Issues", value: maintenance.length, icon: "🔧", color: "#F59E0B" },
-      { label: "Popular Locations", value: locationArray.length, icon: "📍", color: colors.secondary },
-    ];
-
-    // Modern summary cards layout
-    const cardWidth = (doc.page.width - 120) / 2; // 2 cards per row
-    const cardHeight = 80;
-    const cardMargin = 20;
-
-    summaryData.forEach((item, index) => {
-      const row = Math.floor(index / 2);
-      const col = index % 2;
-      const x = 60 + col * (cardWidth + cardMargin);
-      const y = 120 + row * (cardHeight + cardMargin);
-
-      // Card background with subtle shadow effect
-      doc
-        .roundedRect(x, y, cardWidth, cardHeight, 12)
-        .fill(colors.background);
-
-      // Card border
-      doc
-        .roundedRect(x, y, cardWidth, cardHeight, 12)
-        .stroke(colors.border);
-
-      // Icon and label
-      doc
-        .font(fs.existsSync(fonts.medium) ? "Roboto-Medium" : "Helvetica")
-        .fontSize(14)
-        .fillColor(colors.textLight)
-        .text(item.icon + " " + item.label, x + 20, y + 20);
-
-      // Value with accent color
-      doc
-        .font(fs.existsSync(fonts.bold) ? "Roboto-Bold" : "Helvetica-Bold")
-        .fontSize(20)
-        .fillColor(item.color)
-        .text(String(item.value), x + 20, y + 45);
+    // Headers
+    doc.setFontSize(9);
+    const colWidth = 35;
+    headers.forEach((h, i) => {
+      doc.text(h, 20 + i * colWidth, y);
     });
+    y += 5;
+    doc.line(20, y, 20 + headers.length * colWidth, y);
+    y += 5;
 
-    // move to the next page which will contain simple tables
-    doc.addPage();
-
-    // ---------------- MODERN TABLES ----------------
-    // Helper to draw a modern table that paginates
-    function drawModernTable(title, headers, rows) {
-      const margin = doc.options.margin;
-      const tableHeaderHeight = 60;
-      const headerHeight = 30;
-      const rowHeight = 25;
-      const minRowsToShow = 3; // Minimum rows to show before pagination
-
-      // Check if we have enough space on current page for table header + min rows
-      const requiredSpace = tableHeaderHeight + headerHeight + (minRowsToShow * rowHeight) + 50; // +50 for margins
-      const availableSpace = doc.page.height - doc.y - margin - 40; // -40 for page numbers
-
-      // If not enough space, start a new page
-      if (availableSpace < requiredSpace) {
+    // Rows
+    rows.forEach((row) => {
+      if (y > 270) {
         doc.addPage();
+        y = 20;
       }
-
-      // Page background
-      doc.rect(0, 0, doc.page.width, doc.page.height).fill(colors.background);
-
-      // Table header with gradient background
-      doc
-        .rect(0, 0, doc.page.width, tableHeaderHeight)
-        .fill(colors.primary);
-
-      doc
-        .font(fs.existsSync(fonts.bold) ? "Roboto-Bold" : "Helvetica-Bold")
-        .fontSize(20)
-        .fillColor(colors.background)
-        .text(title, 60, 25);
-
-      doc.moveDown(1);
-
-      const usableWidth = doc.page.width - margin * 2;
-      const colCount = Math.max(headers.length, 1);
-      const colWidth = usableWidth / colCount;
-
-      // Modern header row with gradient
-      let y = doc.y;
-      function drawHeader() {
-        // Header background with gradient effect
-        doc
-          .roundedRect(margin, y, usableWidth, headerHeight, 6)
-          .fill(colors.primaryDark);
-
-        // Header border
-        doc
-          .roundedRect(margin, y, usableWidth, headerHeight, 6)
-          .stroke(colors.primary);
-
-        doc.fillColor(colors.background);
-        doc.font(fs.existsSync(fonts.bold) ? "Roboto-Bold" : "Helvetica-Bold").fontSize(11);
-        headers.forEach((h, i) => {
-          doc.text(h, margin + i * colWidth + 8, y + 9, { width: colWidth - 16, align: "center" });
-        });
-        y += headerHeight + 5; // Add spacing after header
-      }
-
-      drawHeader();
-
-      doc.font(fs.existsSync(fonts.regular) ? "Roboto-Regular" : "Helvetica").fontSize(10).fillColor(colors.text);
-
-      rows.forEach((row, rIdx) => {
-        // Check if we need to paginate within the table
-        if (y + rowHeight > doc.page.height - margin - 40) { // Leave room for page numbers
-          doc.addPage();
-          // Redraw page background and header
-          doc.rect(0, 0, doc.page.width, doc.page.height).fill(colors.background);
-          doc
-            .rect(0, 0, doc.page.width, tableHeaderHeight)
-            .fill(colors.primary);
-          doc
-            .font(fs.existsSync(fonts.bold) ? "Roboto-Bold" : "Helvetica-Bold")
-            .fontSize(20)
-            .fillColor(colors.background)
-            .text(title, 60, 25);
-          doc.moveDown(1);
-          y = doc.y;
-          drawHeader();
-        }
-
-        // Alternate row colors for better readability
-        const fill = rIdx % 2 === 0 ? colors.background : colors.backgroundLight;
-
-        // Row background
-        doc
-          .roundedRect(margin, y, usableWidth, rowHeight, 4)
-          .fill(fill);
-
-        // Subtle row border
-        doc
-          .roundedRect(margin, y, usableWidth, rowHeight, 4)
-          .stroke(colors.border);
-
-        row.forEach((cell, cIdx) => {
-          const text = cell == null ? "" : String(cell);
-          const isNumeric = typeof cell === "number" || (typeof text === "string" && text.startsWith("$"));
-
-          doc.fillColor(colors.text);
-          doc.text(text, margin + cIdx * colWidth + 8, y + 7, {
-            width: colWidth - 16,
-            align: isNumeric ? "right" : "center",
-          });
-        });
-
-        y += rowHeight + 2; // Add spacing between rows
+      row.forEach((cell, i) => {
+        const text = cell == null ? "" : String(cell);
+        doc.text(text, 20 + i * colWidth, y, { maxWidth: colWidth - 2 });
       });
+      y += 5;
+    });
+    y += 10;
+  }
 
-      // Set doc.y so subsequent content starts after table
-      doc.y = y + 20;
-      doc.moveDown(1);
-    }
+  // Prepare all rows
+  const sessionRows = sessions.map((s) => [
+    (s.session_id || s._id)?.toString?.().slice(0, 8) || "-",
+    (s.user_id || s.user)?.toString?.().slice(0, 8) || "-",
+    (s.bike_id || s.bike)?.toString?.().slice(0, 8) || "-",
+    s.status || "-",
+    `LKR ${Number(s.cost || 0).toFixed(2)}`,
+  ]);
 
-    // Prepare rows for each dataset (keep it concise)
-    const sessionRows = sessions.map((s) => [
-      (s.session_id || s._id)?.toString?.().slice(0, 8) || "-",
-      (s.user_id || s.user)?.toString?.().slice(0, 8) || "-",
-      (s.bike_id || s.bike)?.toString?.().slice(0, 8) || "-",
-      s.status || "-",
-      `$${Number(s.cost || 0).toFixed(2)}`,
-    ]);
+  const paymentRows = payments.map((p) => [
+    (p._id || "")?.toString?.().slice(0, 8) || "-",
+    (p.user_id || p.user)?.toString?.().slice(0, 8) || "-",
+    `LKR ${Number(p.amount || 0).toFixed(2)}`,
+    p.status || "-",
+    new Date(p.createdAt).toLocaleDateString(),
+  ]);
 
-    const paymentRows = payments.map((p) => [
-      (p._id || "")?.toString?.().slice(0, 8) || "-",
-      (p.user_id || p.user)?.toString?.().slice(0, 8) || "-",
-      `$${Number(p.amount || 0).toFixed(2)}`,
-      p.status || "-",
-      new Date(p.createdAt).toLocaleDateString(),
-    ]);
+  const maintenanceRows = maintenance.map((m) => [
+    (m.bike_id || "")?.toString?.().slice(0, 8) || "-",
+    m.issue ? (m.issue.length > 40 ? m.issue.substring(0, 37) + "..." : m.issue) : "-",
+    m.status || "-",
+    `LKR ${Number(m.cost || 0).toFixed(2)}`,
+  ]);
 
-    const maintenanceRows = maintenance.map((m) => [
-      (m.bike_id || "")?.toString?.().slice(0, 8) || "-",
-      m.issue ? (m.issue.length > 60 ? m.issue.substring(0, 57) + "..." : m.issue) : "-",
-      m.status || "-",
-      `$${Number(m.cost || 0).toFixed(2)}`,
-    ]);
+  const bikeUsageRows = bikeUsageArray.map((bike) => [
+    bike.bikeId.toString().slice(0, 8),
+    bike.totalRides,
+    `LKR ${bike.totalRevenue.toFixed(2)}`,
+    `${Math.round(bike.totalTime)} min`,
+  ]);
 
-    const bikeUsageRows = bikeUsageArray.map((bike) => [
-      bike.bikeId.toString().slice(0, 8),
-      bike.totalRides,
-      `$${bike.totalRevenue.toFixed(2)}`,
-      `${Math.round(bike.totalTime)} min`,
-    ]);
+  const locationRows = locationArray.map((location, index) => [
+    index + 1,
+    location.coordinates,
+    location.totalRentals,
+    `LKR ${location.totalRevenue.toFixed(2)}`,
+  ]);
 
-    const locationRows = locationArray.map((location, index) => [
-      index + 1,
-      location.coordinates,
-      location.totalRentals,
-      `$${location.totalRevenue.toFixed(2)}`,
-    ]);
+  // Draw tables
+  drawTable("Rental Sessions", ["Session", "User", "Bike", "Status", "Cost"], sessionRows);
+  drawTable("Payments", ["Payment", "User", "Amount", "Status", "Date"], paymentRows);
+  drawTable("Maintenance Records", ["Bike", "Issue", "Status", "Cost"], maintenanceRows);
+  drawTable("Bike Usage Summary", ["Bike ID", "Rides", "Revenue", "Time"], bikeUsageRows);
+  drawTable("Top Rental Locations", ["Rank", "Coords", "Rentals", "Revenue"], locationRows);
 
-    // Draw the tables; check space before creating new pages
-    drawModernTable("Rental Sessions", ["Session", "User", "Bike", "Status", "Cost"], sessionRows);
-    drawModernTable("Payments", ["Payment", "User", "Amount", "Status", "Date"], paymentRows);
-    drawModernTable("Maintenance Records", ["Bike", "Issue", "Status", "Cost"], maintenanceRows);
-    drawModernTable("Bike Usage Summary", ["Bike ID", "Total Rides", "Revenue Generated", "Total Time"], bikeUsageRows);
-    drawModernTable("Top Rental Locations", ["Rank", "Coordinates", "Total Rentals", "Revenue"], locationRows);
-
-    // ---------------- ADD PAGE NUMBERS ----------------
-    const range = doc.bufferedPageRange(); // { start: 0, count: n }
-    for (let i = 0; i < range.count; i++) {
-      doc.switchToPage(i);
-      doc.fontSize(9).fillColor(colors.textMuted).text(`Page ${i + 1} of ${range.count}`, 0, doc.page.height - 40, {
-        align: "center",
-      });
-    }
-
-    // finalize PDF
-    doc.end();
-  });
+  // Get PDF as buffer
+  const pdfBuffer = doc.output('arraybuffer');
 
   // return PDF as an attachment
   const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD format

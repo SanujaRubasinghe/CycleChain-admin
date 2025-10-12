@@ -185,7 +185,7 @@ export default function AdminDashboard() {
               <div>
                 <p className="text-yellow-100 text-sm font-medium">Total Revenue</p>
                 <p className="text-3xl font-bold text-white">
-                  {stats.loading ? "..." : `$${stats.totalRevenue.toLocaleString()}`}
+                  {stats.loading ? "..." : `LKR ${stats.totalRevenue.toLocaleString()}`}
                 </p>
               </div>
               <div className="text-4xl">💰</div>

@@ -305,8 +305,8 @@ function RuleForm({ rule, onClose }) {
                   className="w-full bg-gray-700 border border-gray-600 rounded-md p-2 text-white"
                 >
                   <option value="mileage">Mileage</option>
-                  <option value="time">Time</option>
-                  <option value="combination">Combination</option>
+                  {/* <option value="time">Time</option>
+                  <option value="combination">Combination</option> */}
                 </select>
               </div>
             </div>

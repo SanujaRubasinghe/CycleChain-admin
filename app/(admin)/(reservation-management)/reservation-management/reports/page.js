@@ -598,7 +598,7 @@ export default function PDFGenerator() {
                                         </div>
                                         <div className="border border-gray-700 p-4 rounded bg-gray-800">
                                             <p className="text-sm text-gray-400">Revenue</p>
-                                            <p className="text-2xl font-bold text-white">${analyticsData.revenue.toLocaleString()}</p>
+                                            <p className="text-2xl font-bold text-white">LKR {analyticsData.revenue.toLocaleString()}</p>
                                         </div>
                                         <div className="border border-gray-700 p-4 rounded bg-gray-800">
                                             <p className="text-sm text-gray-400">Occupancy Rate</p>
@@ -700,9 +700,9 @@ export default function PDFGenerator() {
                                                 {analyticsData.monthlyTrend.map((month, index) => (
                                                     <tr key={index}>
                                                         <td className="px-4 py-2 text-sm text-white">{month.month}</td>
-                                                        <td className="px-4 py-2 text-sm text-white">${month.revenue.toLocaleString()}</td>
+                                                        <td className="px-4 py-2 text-sm text-white">LKR {month.revenue.toLocaleString()}</td>
                                                         <td className="px-4 py-2 text-sm text-white">{month.bookings}</td>
-                                                        <td className="px-4 py-2 text-sm text-white">${Math.round(month.revenue / month.bookings)}</td>
+                                                        <td className="px-4 py-2 text-sm text-white">LKR {Math.round(month.revenue / month.bookings)}</td>
                                                     </tr>
                                                 ))}
                                                 </tbody>

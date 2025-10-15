@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
-import RentalSession from "@/models/RentalSession";
+import Reservation from "@/models/Reservation";
 
 function startOfMonth(date) {
   return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -15,7 +15,7 @@ export async function GET(request) {
   const end = new Date();
   const start = new Date(end.getFullYear(), end.getMonth() - (months - 1), 1);
 
-  const agg = await RentalSession.aggregate([
+  const agg = await Reservation.aggregate([
     { $match: { start_time: { $gte: start } } },
     {
       $project: {

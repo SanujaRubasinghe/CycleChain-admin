@@ -1,12 +1,23 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
-export default function AdminLoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
+  const [success, setSuccess] = useState("");
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const message = searchParams.get("message");
+    if (message) {
+      setSuccess(message);
+    }
+  }, [searchParams]);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -15,7 +26,7 @@ export default function AdminLoginPage() {
       email,
       password,
       redirect: true,
-      callbackUrl: "/dashboard", 
+      callbackUrl: "/", 
     });
     if (res?.error) {
       setErr("Login failed: " + res.error);
@@ -31,6 +42,10 @@ export default function AdminLoginPage() {
         <p className="text-gray-400 text-center mt-1">
           Access the Cycle Chain dashboard.
         </p>
+
+        {success && (
+          <div className="mt-4 text-green-400 text-center font-medium">{success}</div>
+        )}
 
         {err && (
           <div className="mt-4 text-red-400 text-center font-medium">{err}</div>
@@ -68,7 +83,25 @@ export default function AdminLoginPage() {
             Sign In
           </button>
         </form>
+        <div className="mt-6 text-center">
+          <span className="text-gray-400">Don't have an account?</span>{" "}
+          <Link href="/register" className="text-green-400 hover:text-green-300 font-medium">
+            Sign up
+          </Link>
+        </div>
       </div>
     </div>
+  );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-900 grid place-items-center px-4">
+      <div className="w-full max-w-md bg-gray-800 border border-gray-700 rounded-2xl shadow-xl p-8">
+        <div className="text-center text-white">Loading...</div>
+      </div>
+    </div>}>
+      <LoginForm />
+    </Suspense>
   );
 }

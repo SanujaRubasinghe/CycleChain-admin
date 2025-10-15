@@ -8,13 +8,13 @@ export async function GET(req) {
   await dbConnect();
   const { searchParams } = new URL(req.url);
   const { start, end } = parseTimeRange(searchParams);
-  const threshold = Number(searchParams.get("threshold") || 25); // %
-  const minSeen = new Date(end.getTime() - 6 * 3600 * 1000); // bikes seen in last 6h
+  const threshold = Number(searchParams.get("threshold") || 25); 
+  const minSeen = new Date(end.getTime() - 6 * 3600 * 1000); 
 
   const bikes = await Bike.find(
     {
       lastSeenAt: { $gte: start, $lte: end },
-      soc: { $lte: threshold + 30 }, // small cushion to emphasize near-threshold
+      soc: { $lte: threshold + 30 }, 
       status: { $ne: "maintenance" },
     },
     { location: 1, soc: 1, _id: 0 }
@@ -23,7 +23,6 @@ export async function GET(req) {
   const cells = new Map();
   for (const b of bikes) {
     if (!b.location) continue;
-    // Weight: how far below threshold (min 0)
     const deficit = Math.max(0, threshold - (b.soc ?? 0));
     if (deficit <= 0) continue;
     const id = cellId(b.location.lat, b.location.lng);

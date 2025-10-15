@@ -5,9 +5,9 @@ import User from "@/models/User";
 
 export async function POST(req) {
   try {
-    const { username, email, password } = await req.json();
+    const { username, email, password, nic } = await req.json();
 
-    if (!username || !email || !password) {
+    if (!username || !email || !password || !nic) {
       return NextResponse.json(
         { message: "All fields are required" },
         { status: 400 }
@@ -36,6 +36,7 @@ export async function POST(req) {
       username,
       email: email.toLowerCase(),
       password: hash,
+      nic,
       role: "admin", // <- force admin role
     });
 

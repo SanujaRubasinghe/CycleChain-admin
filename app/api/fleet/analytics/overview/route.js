@@ -11,19 +11,19 @@ export async function GET(request) {
   const thirtyDaysAgo = new Date(now);
   thirtyDaysAgo.setDate(now.getDate() - 30);
 
-  const totalRentalsPromise = Reservation.countDocuments({ status: "completed" });
+  const totalRentalsPromise = Reservation.countDocuments({ status: "completed-paid" });
 
   const activeUsersFromSessionsPromise = Reservation.distinct("user_id", { status: "in_progress" });
   const activeUsersFromLastSeenPromise = User.countDocuments({ lastSeenAt: { $gte: thirtyDaysAgo } });
 
   const avgRideTimePromise = Reservation.aggregate([
-    { $match: { status: "completed", end_time: { $exists: true }, start_time: { $exists: true }, end_time: { $gte: thirtyDaysAgo } } },
+    { $match: { status: "completed-paid", end_time: { $exists: true }, start_time: { $exists: true }, end_time: { $gte: thirtyDaysAgo } } },
     { $project: { diffMinutes: { $divide: [{ $subtract: ["$end_time", "$start_time"] }, 1000 * 60] } } },
     { $group: { _id: null, avgMinutes: { $avg: "$diffMinutes" } } }
   ]);
 
   const revenuePromise = Payment.aggregate([
-    { $match: { status: "paid", createdAt: { $gte: thirtyDaysAgo } } },
+    { $match: { status: "completed", createdAt: { $gte: thirtyDaysAgo } } },
     { $group: { _id: null, total: { $sum: "$amount" } } }
   ]);
 

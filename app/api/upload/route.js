@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../../auth/[...nextauth]/route";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { createWriteStream } from "node:fs";
 import { mkdir, stat } from "node:fs/promises";
 import { join } from "node:path";

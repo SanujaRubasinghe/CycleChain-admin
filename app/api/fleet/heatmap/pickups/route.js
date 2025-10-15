@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
-import Ride from "@/models/Ride";
+import Reservation from "@/models/Reservation";
 import { cellId, cellCenter } from "@/lib/grid";
 import { parseTimeRange, decayedWeight } from "@/lib/heatmapUtils";
 
@@ -9,15 +9,16 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const { start, end, tauHours } = parseTimeRange(searchParams);
 
-  const rides = await Ride.find(
-    { startTime: { $gte: start, $lte: end } },
-    { start: 1, startTime: 1, _id: 0 }
+  const rides = await Reservation.find(
+    { start_time: { $gte: start, $lte: end } },
+    { start_location: 1, start_time: 1, _id: 0 }
   ).lean();
+
 
   const cells = new Map();
   for (const r of rides) {
-    const id = cellId(r.start.lat, r.start.lng);
-    const w = decayedWeight(new Date(r.startTime), end, tauHours, 1);
+    const id = cellId(r.start_location.lat, r.start_location.lng);
+    const w = decayedWeight(new Date(r.start_time), end, tauHours, 1);
     cells.set(id, (cells.get(id) || 0) + w);
   }
 

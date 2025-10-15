@@ -111,7 +111,7 @@ export default function MaintenanceForm({ record, onClose }) {
               <option value="">Select a bike</option>
               {bikes.map(bike => (
                 <option key={bike._id} value={bike.bikeId}>
-                  {bike.bikeId} - {bike.name}
+                  {bike.name}
                 </option>
               ))}
             </select>
